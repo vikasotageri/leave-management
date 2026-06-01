@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <h1 class="text-2xl font-bold text-gray-800 mb-6">📊 Manager Dashboard</h1>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div class="flex border-b border-gray-200">
+      <button onclick="switchMgrTab('dashboard')" id="mgrTabDashboard" class="flex-1 px-4 py-3 text-sm font-medium text-blue-600 border-b-2 border-blue-600">Dashboard</button>
+      <button onclick="switchMgrTab('approvals')" id="mgrTabApprovals" class="flex-1 px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">Team Leave Approve Request</button>
+    </div>
+
+    <div class="p-4">
+      <!-- Employee Detail View (shown when clicking a team member) -->
+      <div id="mgrEmployeeView" class="hidden">
+        <button onclick="closeEmployeeView()" class="text-sm text-blue-600 hover:text-blue-800 mb-4">&larr; Back to Team</button>
+        <div id="empDetailHeader" class="mb-4"></div>
+        <div id="empBalanceCards" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6"></div>
+        <div id="empApprovalTabs" class="flex gap-2 mb-3 text-sm">
+          <button onclick="switchEmpApprovalTab('pending')" id="empApprovalTabPending" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full font-medium">Pending</button>
+          <button onclick="switchEmpApprovalTab('cancellations')" id="empApprovalTabCancellations" class="px-3 py-1.5 text-gray-500 hover:bg-gray-100 rounded-full">Cancellations</button>
+          <button onclick="switchEmpApprovalTab('history')" id="empApprovalTabHistory" class="px-3 py-1.5 text-gray-500 hover:bg-gray-100 rounded-full">History</button>
+        </div>
+        <div id="empApprovalList" class="space-y-3 text-sm"></div>
+      </div>
+
+      <!-- Dashboard Tab -->
+      <div id="mgrDashboardContent">
+        <div id="mgrStatsCards" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6"></div>
+        <div id="teamMemberList" class="space-y-3 max-h-[600px] overflow-y-auto pr-1"></div>
+      </div>
+
+      <!-- Team Leave Approve Request Tab -->
+      <div id="mgrApprovalsContent" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-700">Team Members</h2>
+        </div>
+        <div id="mgrApprovalsList" class="space-y-3 max-h-[600px] overflow-y-auto pr-1"></div>
+      </div>
+
+      <!-- Chat Tab -->
+      <div id="mgrChatContent" class="hidden"></div>
+    </div>
+  </div>
+</div>
+<!-- Manager Chat Bot -->
+<div id="mgrChatbot" class="fixed bottom-6 right-6 z-50">
+  <button onclick="toggleMgrChat()" class="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-2xl shadow-xl hover:scale-105 transition-transform flex items-center justify-center text-2xl shadow-purple-200" title="AI Assistant">🤖</button>
+  <div id="mgrChatPanel" class="hidden absolute bottom-16 right-0 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+    <div class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white px-4 py-3 flex items-center justify-between">
+      <span class="font-semibold text-sm">🤖 LangGraph Manager AI</span>
+      <div class="flex items-center gap-2">
+        <button onclick="clearMgrChat()" class="text-white/70 hover:text-white text-xs" title="Clear chat">🗑️</button>
+        <button onclick="toggleMgrChat()" class="text-white/80 hover:text-white">&times;</button>
+      </div>
+    </div>
+    <div id="mgrChatMessages" class="h-[400px] overflow-y-auto p-3 space-y-3 bg-gray-50 text-sm"></div>
+    <div class="p-3 border-t border-gray-200">
+      <div class="flex gap-2">
+        <textarea id="mgrChatInput" rows="4" placeholder="Ask about team, leaves, policies..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMgrChat()}" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
+        <button onclick="sendMgrChat()" class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white px-4 py-2 rounded-xl text-sm hover:from-purple-700 hover:to-indigo-800 transition self-end">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

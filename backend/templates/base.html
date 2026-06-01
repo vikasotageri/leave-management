@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeaveFlow - Leave Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav id="navbar" class="bg-white shadow-sm border-b border-gray-200 hidden">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <a href="/" class="text-xl font-bold text-blue-600">🌿 LeaveFlow</a>
+        <div id="navLinks" class="flex gap-4 text-sm font-medium text-gray-600"></div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div id="dateTimeDisplay" class="text-xs text-gray-400 text-right leading-tight">
+          <div id="dateDisplay"></div>
+          <div id="clockDisplay" class="font-mono"></div>
+        </div>
+        <div id="notificationBell" class="relative cursor-pointer">
+          <span class="text-lg">🔔</span>
+          <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center hidden"></span>
+        </div>
+        <span id="userDisplay" class="text-sm text-gray-500"></span>
+        <button onclick="logout()" class="text-sm text-red-500 hover:text-red-700 font-medium">Logout</button>
+      </div>
+    </div>
+  </nav>
+  <main id="mainContent">{% block content %}{% endblock %}</main>
+  <div id="notifDropdown" class="hidden fixed right-4 top-14 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-96 overflow-y-auto"></div>
+  <script src="/static/js/app.js?v=18"></script>
+</body>
+</html>

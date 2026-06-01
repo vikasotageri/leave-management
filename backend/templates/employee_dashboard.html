@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+
+  <!-- Top Header: Employee Info + Calendar Icon -->
+  <div id="empProfileHeader" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 mb-6">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-md">E</div>
+        <div class="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+          <div><span class="text-gray-400">ID:</span> <span id="empHeaderId" class="font-semibold text-gray-800">—</span></div>
+          <div><span class="text-gray-400">Name:</span> <span id="empHeaderName" class="font-semibold text-gray-800">—</span></div>
+          <div><span class="text-gray-400">DOJ:</span> <span id="empHeaderDoj" class="text-gray-600">—</span></div>
+          <div><span class="text-gray-400">Email:</span> <span id="empHeaderEmail" class="text-gray-600 truncate">—</span></div>
+          <div><span class="text-gray-400">Phone:</span> <span id="empHeaderPhone" class="text-gray-600">—</span></div>
+          <div><span class="text-gray-400">Gender:</span> <span id="empHeaderGender" class="text-gray-600">—</span></div>
+          <div><span class="text-gray-400">Designation:</span> <span id="empHeaderDesig" class="text-gray-600">—</span></div>
+          <div><span class="text-gray-400">Project:</span> <span id="empHeaderProject" class="text-gray-600">—</span></div>
+        </div>
+      </div>
+      <button onclick="openCalendarModal()" class="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 text-white rounded-2xl flex items-center justify-center text-2xl shadow-md hover:scale-105 transition-transform" title="View Calendar">📅</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden p-6">
+      <!-- Leave Balance Cards -->
+      <h3 class="font-semibold text-gray-700 text-lg mb-4">📊 Leave Balance</h3>
+      <div id="leaveBalanceCards" class="grid grid-cols-5 gap-4 mb-6"></div>
+
+      <!-- Leave Policy Quick Info -->
+      <details class="mb-6 bg-blue-50 rounded-2xl p-4 border border-blue-100">
+        <summary class="text-sm font-semibold text-blue-700 cursor-pointer">📋 Leave Policy Rules</summary>
+        <div class="mt-3 text-xs text-gray-600 space-y-2">
+          <p><b>Casual Leave (2/month):</b> 2/month auto-approved if balance available. &gt;2/month → manager approval. No balance → paid leave (manager approves). Carried forward. Max 24/year.</p>
+          <p><b>Sick Leave (1/month):</b> 1/month auto-approved. &gt;1/month → manager. Not carried forward. No balance → paid leave.</p>
+          <p><b>Business Leave (20/year):</b> Always manager approval. Not carried forward.</p>
+          <p><b>Emergency/Personal (10/year):</b> 1/month auto-approved. &gt;1/month → manager. Not carried forward. No balance → paid leave.</p>
+          <p><b>Family/Vacation (10/year):</b> Always manager approval. Not carried forward.</p>
+          <p><b>Unpaid Leave (No limit):</b> Always manager approval. No balance required.</p>
+          <p><b>Project Tag:</b> If you have a project tag, ALL leaves need manager approval (no auto-approval).</p>
+          <p><b>Paid Leave:</b> When all leave types exhausted, applies as paid leave. Manager approval required.</p>
+        </div>
+      </details>
+
+      <!-- Upcoming Leaves -->
+      <h3 class="font-semibold text-gray-700 text-lg mb-4">📅 Upcoming Leaves</h3>
+      <div id="upcomingLeaves" class="space-y-3 max-h-[340px] overflow-y-auto pr-1 mb-6"></div>
+
+      <!-- Apply Leave Module (Weekly Calendar) -->
+      <div class="border-t border-gray-200 pt-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-gray-700 text-lg">📝 Apply Leave</h3>
+          <div class="flex items-center gap-2">
+            <button onclick="weekCalPrev()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">◀ Prev</button>
+            <span id="weekCalRange" class="text-sm font-medium text-gray-700 min-w-[200px] text-center">—</span>
+            <button onclick="weekCalNext()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">Next ▶</button>
+          </div>
+        </div>
+        <div id="weekCalGrid" class="grid grid-cols-7 gap-2 mb-4"></div>
+        <!-- Summary -->
+        <div id="weekCalSummary" class="bg-gray-50 rounded-2xl p-4 mb-3 hidden">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-gray-700">📋 Leave Summary</span>
+            <span class="text-sm font-bold text-blue-600">Total: <span id="weekCalTotalCount">0</span> leave day(s)</span>
+          </div>
+          <div id="weekCalSummaryList" class="text-sm text-gray-600 space-y-1"></div>
+        </div>
+        <!-- Controls -->
+        <div class="flex items-center gap-2 mb-3">
+          <button onclick="weekCalClear()" class="px-4 py-2 border border-red-300 text-red-600 rounded-xl text-sm font-medium hover:bg-red-50 transition">🗑️ Clear All</button>
+          <button onclick="weekCalSubmit()" id="weekCalApplyBtn" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-blue-200 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>Apply Leave</button>
+        </div>
+        <div id="weekCalLeaveOptions" class="space-y-2 hidden">
+          <textarea id="weekCalReason" rows="2" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Reason (optional)"></textarea>
+          <input type="file" id="weekCalDocument" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:text-sm">
+        </div>
+        <div id="weekCalResult" class="text-sm hidden mt-2"></div>
+      </div>
+
+      <!-- Leave History -->
+      <div class="border-t border-gray-200 pt-6 mt-6">
+        <h3 class="font-semibold text-gray-700 text-lg mb-4">📝 Leave History</h3>
+        <div class="mb-4">
+          <div class="flex flex-wrap gap-2">
+            <div class="relative flex-1 min-w-[180px]">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+              <input type="text" id="leaveHistorySearch" placeholder="Search by Request ID or Date..." oninput="filterLeaveHistory()" class="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <select id="leaveTypeFilter" onchange="filterLeaveHistory()" class="px-3 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">All Types</option>
+              <option value="casual">Casual</option>
+              <option value="sick">Sick</option>
+              <option value="business">Business</option>
+              <option value="emergency">Personal/Emergency</option>
+              <option value="family">Family/Vacation</option>
+              <option value="unpaid">Unpaid</option>
+            </select>
+            <select id="leaveStatusFilter" onchange="filterLeaveHistory()" class="px-3 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">All Status</option>
+              <option value="approved">Approved</option>
+              <option value="pending">Pending</option>
+              <option value="cancellation_requested">Cancellation Pending</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200">
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Request ID</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Applied On</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Leave Type</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Leave on</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Reason</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">View</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                <th class="text-left px-4 py-3 font-semibold text-gray-600">Action</th>
+              </tr>
+            </thead>
+            <tbody id="leaveHistoryTable" class="text-xs"></tbody>
+          </table>
+          <div id="leaveHistoryEmpty" class="text-center py-8 text-gray-400 hidden">
+            <span class="text-4xl block mb-2">📋</span>
+            <p class="text-sm">No leave history found</p>
+          </div>
+          <div id="leavePagination" class="flex items-center justify-between mt-4 hidden">
+            <button onclick="leavePrevPage()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">◀ Back 15</button>
+            <span id="leavePageInfo" class="text-sm text-gray-500"></span>
+            <button onclick="leaveNextPage()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">Next 15 ▶</button>
+          </div>
+        </div>
+      </div>
+  </div>
+
+<!-- Calendar Modal -->
+<div id="calendarModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
+  <div class="bg-white rounded-3xl w-full max-w-2xl p-8 mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-xl font-bold text-gray-800">📆 Leave Calendar</h2>
+        <p class="text-sm text-gray-500 mt-0.5">Monthly view with holidays & leave status</p>
+      </div>
+      <button onclick="closeCalendarModal()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 text-xl transition">&times;</button>
+    </div>
+    <div class="flex items-center justify-between mb-4">
+      <button onclick="calendarPrevMonth()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">◀</button>
+      <span id="calendarMonthTitle" class="text-lg font-bold text-gray-700">—</span>
+      <button onclick="calendarNextMonth()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">▶</button>
+    </div>
+    <div class="flex gap-2 mb-4 text-xs flex-wrap">
+      <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full">🏛️ Holiday</span>
+      <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full">📅 Weekend</span>
+      <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full">✅ Approved</span>
+      <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full">⏳ Pending</span>
+      <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">🔶 Cancellation Pending</span>
+    </div>
+    <div id="calendarContent"></div>
+  </div>
+</div>
+
+<!-- AI Chat Button & Panel -->
+<button onclick="toggleEmpChat()" class="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl shadow-xl hover:scale-105 transition-transform z-50 flex items-center justify-center text-2xl" title="AI Assistant">
+  🤖
+</button>
+
+<div id="empChatPanel" class="fixed bottom-24 right-6 w-96 sm:w-[420px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 hidden flex flex-col max-h-[700px]">
+  <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-2xl">
+    <span class="font-semibold text-sm">🤖 AI Assistant</span>
+    <div class="flex items-center gap-2">
+      <button onclick="clearEmpChat()" class="text-white/70 hover:text-white text-xs" title="Clear chat">🗑️</button>
+      <button onclick="toggleEmpChat()" class="text-white/80 hover:text-white">&times;</button>
+    </div>
+  </div>
+  <div id="empChatMessages" class="flex-1 p-4 overflow-y-auto space-y-3 text-sm min-h-[350px] max-h-[450px] bg-gray-50"></div>
+  <div class="p-3 border-t border-gray-200">
+    <div class="flex gap-2">
+      <textarea id="empChatInput" rows="4" placeholder="Ask anything..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendEmpChat()}" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+      <button onclick="sendEmpChat()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 self-end">Send</button>
+    </div>
+    <div class="flex gap-1 mt-2 flex-wrap">
+      <button onclick="setEmpChatPrompt('Apply emergency leave on 04-06-2026')" class="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-[11px] hover:bg-gray-200">Apply leave</button>
+      <button onclick="setEmpChatPrompt('What is my leave balance?')" class="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-[11px] hover:bg-gray-200">My balance</button>
+      <button onclick="setEmpChatPrompt('Cancel leave L-66c84292')" class="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-[11px] hover:bg-gray-200">Cancel leave</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

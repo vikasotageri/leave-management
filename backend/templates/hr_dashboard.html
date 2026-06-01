@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+
+  <!-- Main Content -->
+  <div class="flex gap-6">
+    <div class="w-1/3">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold text-gray-800">👥 Employees</h2>
+          <button onclick="openCreateEmployee()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 shadow-md shadow-blue-200 transition flex items-center gap-1.5">
+            <span class="text-lg leading-none">+</span> Add
+          </button>
+        </div>
+        <div class="mb-3">
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+            <input type="text" id="empSearch" placeholder="Search employees..." oninput="filterEmployeeList()" class="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+        </div>
+        <div id="employeeList" class="space-y-2 max-h-[65vh] overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+    <div class="w-2/3">
+      <div id="employeeProfile" class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 min-h-[400px]">
+        <div class="flex flex-col items-center justify-center py-16 text-gray-400">
+          <div class="text-7xl mb-4 opacity-50">👤</div>
+          <p class="text-xl font-medium text-gray-300">Select an employee</p>
+          <p class="text-sm text-gray-300 mt-1">Click on any employee from the list to view their profile</p>
+  </div>
+
+  <!-- Leave Policy -->
+  <details class="mt-6 bg-blue-50 rounded-2xl p-4 border border-blue-100 max-w-7xl mx-auto px-4">
+    <summary class="text-sm font-semibold text-blue-700 cursor-pointer">📋 Leave Policy Rules</summary>
+    <div class="mt-3 text-xs text-gray-600 space-y-2">
+      <p><b>Casual Leave (2/month):</b> 2/month credited from DOJ (carried forward, max 24/year). 2/month auto-approved if balance available. &gt;2/month → manager approval. No balance → paid leave (manager approves).</p>
+      <p><b>Sick Leave (1/month):</b> 1/month credited (resets yearly, max 12/year). 1/month auto-approved. &gt;1/month → manager. No balance → paid leave.</p>
+      <p><b>Business Leave (20/year):</b> Always manager approval. Can apply multiple days. Not carried forward.</p>
+      <p><b>Emergency/Personal (10/year):</b> 1/month auto-approved. &gt;1/month → manager. Not carried forward. No balance → paid leave.</p>
+      <p><b>Family/Vacation (10/year):</b> Always manager approval. Not carried forward.</p>
+      <p><b>Unpaid Leave (No limit):</b> Always manager approval. No balance required.</p>
+      <p><b>Project Tag:</b> Tagged employees → ALL leaves require manager approval (no auto-approval).</p>
+      <p><b>Paid Leave:</b> When all leave types exhausted, applies as paid leave. Manager approval required.</p>
+    </div>
+  </details>
+</div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Employee Modal -->
+<div id="createModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
+  <div class="bg-white rounded-3xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-8 mx-4 shadow-2xl">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800">➕ Add New Employee</h2>
+        <p class="text-sm text-gray-500 mt-0.5">Fill in the details to onboard a new team member</p>
+      </div>
+      <button onclick="closeCreateEmployee()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 text-xl transition">&times;</button>
+    </div>
+    <div id="createFormContainer">
+      <form id="createEmployeeForm" class="space-y-4">
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+            <input type="text" name="firstName" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+            <input type="text" name="middleName" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+            <input type="text" name="lastName" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+          <input type="email" name="email" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+          <div class="flex gap-2">
+            <select name="countryCode" class="w-28 px-2 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+91">🇮🇳 +91</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+55">🇧🇷 +55</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+65">🇸🇬 +65</option>
+              <option value="+82">🇰🇷 +82</option>
+            </select>
+            <input type="tel" name="phone" required class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Phone number">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+          <input type="date" name="dob" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nationality *</label>
+            <select name="nationality" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Select nationality</option>
+              <option value="Indian">Indian</option>
+              <option value="American">American</option>
+              <option value="British">British</option>
+              <option value="Australian">Australian</option>
+              <option value="Canadian">Canadian</option>
+              <option value="German">German</option>
+              <option value="French">French</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Chinese">Chinese</option>
+              <option value="Brazilian">Brazilian</option>
+              <option value="Singaporean">Singaporean</option>
+              <option value="Korean">Korean</option>
+              <option value="UAE">UAE</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date of Joining *</label>
+            <input type="date" name="doj" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+          <select name="gender" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Select gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Designation *</label>
+            <select name="designation" required class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Select designation</option>
+              <option value="Software Engineer">Software Engineer</option>
+              <option value="Senior Software Engineer">Senior Software Engineer</option>
+              <option value="Tech Lead">Tech Lead</option>
+              <option value="Manager">Manager</option>
+              <option value="AI ML Engineer">AI ML Engineer</option>
+              <option value="Data Scientist">Data Scientist</option>
+              <option value="DevOps Engineer">DevOps Engineer</option>
+              <option value="QA Engineer">QA Engineer</option>
+              <option value="Product Manager">Product Manager</option>
+              <option value="UI/UX Designer">UI/UX Designer</option>
+              <option value="Business Analyst">Business Analyst</option>
+              <option value="Intern">Intern</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Project Tag</label>
+            <input type="text" name="projectTag" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., ProjectX">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+          <textarea name="address" required rows="2" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Full address"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Document (optional)</label>
+          <input type="file" name="document" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:text-sm">
+        </div>
+        <div id="formError" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm hidden"></div>
+        <div class="flex gap-3 pt-2">
+          <button type="submit" class="flex-[2] bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 shadow-md shadow-blue-200 transition">Create Employee</button>
+          <button type="button" onclick="closeCreateEmployee()" class="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-200 transition">Cancel</button>
+        </div>
+      </form>
+    </div>
+    <div id="createSuccess" class="hidden space-y-6"></div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
+  <div class="bg-white rounded-3xl p-6 mx-4 w-full max-w-sm shadow-2xl text-center">
+    <div class="text-5xl mb-4">⚠️</div>
+    <h3 class="text-xl font-bold text-gray-800 mb-2">Delete Employee?</h3>
+    <p class="text-gray-500 text-sm mb-6">This action cannot be undone. All data will be permanently removed.</p>
+    <div class="flex gap-3">
+      <button onclick="confirmDeleteEmployee()" class="flex-1 bg-red-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-700 transition">Delete</button>
+      <button onclick="closeDeleteModal()" class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-200 transition">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- HR Chat Bot -->
+<div id="hrChatbot" class="fixed bottom-6 right-6 z-50">
+  <button onclick="toggleHrChat()" class="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-2xl shadow-xl hover:scale-105 transition-transform flex items-center justify-center text-2xl shadow-purple-200" title="AI Assistant">🤖</button>
+  <div id="hrChatPanel" class="hidden absolute bottom-16 right-0 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+    <div class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white px-4 py-3 flex items-center justify-between">
+      <span class="font-semibold text-sm">🤖 LangGraph HR AI</span>
+      <div class="flex items-center gap-2">
+        <button onclick="clearHrChat()" class="text-white/70 hover:text-white text-xs" title="Clear chat">🗑️</button>
+        <button onclick="toggleHrChat()" class="text-white/80 hover:text-white">&times;</button>
+      </div>
+    </div>
+    <div id="hrChatMessages" class="h-[400px] overflow-y-auto p-3 space-y-3 bg-gray-50 text-sm"></div>
+    <div class="p-3 border-t border-gray-200">
+      <div class="flex gap-2">
+        <textarea id="hrChatInput" rows="4" placeholder="View employees, org data..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendHrChat()}" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
+        <button onclick="sendHrChat()" class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white px-4 py-2 rounded-xl text-sm hover:from-purple-700 hover:to-indigo-800 transition self-end">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
