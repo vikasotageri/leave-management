@@ -32,20 +32,28 @@
       <details class="mb-6 bg-blue-50 rounded-2xl p-4 border border-blue-100">
         <summary class="text-sm font-semibold text-blue-700 cursor-pointer">📋 Leave Policy Rules</summary>
         <div class="mt-3 text-xs text-gray-600 space-y-2">
-          <p><b>Casual Leave (2/month):</b> 2/month auto-approved if balance available. &gt;2/month → manager approval. No balance → paid leave (manager approves). Carried forward. Max 24/year.</p>
-          <p><b>Sick Leave (1/month):</b> 1/month auto-approved. &gt;1/month → manager. Not carried forward. No balance → paid leave.</p>
-          <p><b>Business Leave (20/year):</b> Always manager approval. Not carried forward.</p>
-          <p><b>Emergency/Personal (10/year):</b> 1/month auto-approved. &gt;1/month → manager. Not carried forward. No balance → paid leave.</p>
-          <p><b>Family/Vacation (10/year):</b> Always manager approval. Not carried forward.</p>
-          <p><b>Unpaid Leave (No limit):</b> Always manager approval. No balance required.</p>
+          <p><b>Casual Leave (Max 24/year, 2/month from DOJ, carried forward):</b> First 2 requests/month auto-approved (max 2 days at a time). 3rd+ or >2 days → manager approval. No negative balance.</p>
+          <p><b>Sick Leave (Max 12/year, no carry forward):</b> First 1 request/month auto-approved (max 1 day at a time). 2nd+ or >1 day → manager. No negative balance.</p>
+          <p><b>Business Leave (Max 20/year, no carry forward):</b> Always manager approval. No auto-approval. No negative balance.</p>
+          <p><b>Emergency/Personal (Max 10/year, no carry forward):</b> First 1 request/month auto-approved (max 1 day at a time). 2nd+ or >1 day → manager. No negative balance.</p>
+          <p><b>Family/Vacation (Max 10/year, no carry forward):</b> Always manager approval. No auto-approval. No negative balance.</p>
+          <p><b>Unpaid Leave (No limit):</b> Apply only when all other leave types exhausted. Always manager approval. No balance required.</p>
           <p><b>Project Tag:</b> If you have a project tag, ALL leaves need manager approval (no auto-approval).</p>
           <p><b>Paid Leave:</b> When all leave types exhausted, applies as paid leave. Manager approval required.</p>
         </div>
       </details>
 
-      <!-- Upcoming Leaves -->
-      <h3 class="font-semibold text-gray-700 text-lg mb-4">📅 Upcoming Leaves</h3>
-      <div id="upcomingLeaves" class="space-y-3 max-h-[340px] overflow-y-auto pr-1 mb-6"></div>
+      <!-- Upcoming & Past Leaves -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div>
+          <h3 class="font-semibold text-gray-700 text-lg mb-4">📅 Upcoming Leaves</h3>
+          <div id="upcomingLeaves" class="space-y-3 max-h-[340px] overflow-y-auto pr-1"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold text-gray-700 text-lg mb-4">📋 Past Leaves</h3>
+          <div id="pastLeaves" class="space-y-3 max-h-[340px] overflow-y-auto pr-1"></div>
+        </div>
+      </div>
 
       <!-- Apply Leave Module (Weekly Calendar) -->
       <div class="border-t border-gray-200 pt-6">
@@ -103,6 +111,19 @@
               <option value="cancellation_requested">Cancellation Pending</option>
               <option value="rejected">Rejected</option>
             </select>
+            <select id="leaveMonthFilter" onchange="filterLeaveHistory()" class="px-3 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">All Months</option>
+              <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+              <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+              <option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+              <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+            </select>
+            <select id="leaveYearFilter" onchange="filterLeaveHistory()" class="px-3 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">All Years</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
           </div>
         </div>
         <div class="overflow-x-auto">
@@ -126,9 +147,9 @@
             <p class="text-sm">No leave history found</p>
           </div>
           <div id="leavePagination" class="flex items-center justify-between mt-4 hidden">
-            <button onclick="leavePrevPage()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">◀ Back 15</button>
+            <button onclick="leavePrevPage()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">◀ Back 10</button>
             <span id="leavePageInfo" class="text-sm text-gray-500"></span>
-            <button onclick="leaveNextPage()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">Next 15 ▶</button>
+            <button onclick="leaveNextPage()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">Next 10 ▶</button>
           </div>
         </div>
       </div>

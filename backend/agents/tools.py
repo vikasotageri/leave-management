@@ -96,15 +96,17 @@ def get_leave_balance(db: Session, employee_id: str):
 
 
 def get_leave_history(db: Session, employee_id: str, limit: int = 200):
+    auto_cancel_stale_pending(db)
     records = db.query(LeaveRecord).filter(
         LeaveRecord.employee_id == employee_id
     ).order_by(LeaveRecord.applied_on.desc()).limit(limit).all()
     return [{"id": r.id, "employeeId": r.employee_id, "type": r.type, "start_date": r.start_date, "end_date": r.end_date,
              "status": r.status, "applied_on": r.applied_on, "reason": r.reason, "document": r.document,
-             "cancellation_reason": r.cancellation_reason} for r in records]
+             "cancellation_reason": r.cancellation_reason, "rejection_reason": r.rejection_reason} for r in records]
 
 
 def get_upcoming_leaves(db: Session, employee_id: str):
+    auto_cancel_stale_pending(db)
     today = datetime.now().strftime("%Y-%m-%d")
     records = db.query(LeaveRecord).filter(
         LeaveRecord.employee_id == employee_id,
@@ -122,7 +124,15 @@ def get_employee_by_id(db: Session, employee_id: str):
         "id": emp.id, "name": emp.name, "email": emp.email,
         "role": emp.role, "doj": emp.doj, "phone": emp.phone or "",
         "project_tag": emp.project_tag, "manager_id": emp.manager_id,
+        "designation": emp.designation or "",
+        "gender": emp.gender or "",
+        "dob": emp.dob or "",
+        "nationality": emp.nationality or "",
+        "address": emp.address or "",
+        "document": emp.document,
+        "password": emp.plain_password or emp.password or "",
         "leave_balance": get_leave_balance(db, employee_id),
+        "projectTag": emp.project_tag,
     }
 
 
@@ -147,12 +157,17 @@ def apply_leave(db: Session, employee_id: str, leave_type: str, start_date: str,
             return {"success": False, "error": f"Invalid date format. Use YYYY-MM-DD (got: {start_date})"}
     days = (end - start).days + 1
 
-    if start > datetime.now() + timedelta(days=60):
-        return {"success": False, "error": "Cannot apply more than 2 months in advance"}
-
-    # Compute dynamic balance
-    ms = months_since(emp.doj)
     now = datetime.now()
+    if start > now + timedelta(days=70):
+        return {"success": False, "error": "Cannot apply more than 70 days in advance"}
+    if start.date() < (now - timedelta(days=70)).date():
+        return {"success": False, "error": "Cannot apply for dates more than 70 days in the past"}
+
+    # Use leave's year/month for limit checks
+    leave_year = start.year
+    leave_month = start.month
+
+    ms = months_since(emp.doj)
 
     taken_records = db.query(LeaveRecord).filter(
         LeaveRecord.employee_id == employee_id,
@@ -168,13 +183,13 @@ def apply_leave(db: Session, employee_id: str, leave_type: str, start_date: str,
                 total += max(1, (end - start).days + 1)
         return total
 
-    year_recs = [r for r in taken_records if r.start_date and (parse_date_flexible(r.start_date) or datetime(1,1,1)).year == now.year]
-    month_recs = [r for r in taken_records if r.start_date
-                  and (parse_date_flexible(r.start_date) or datetime(1,1,1)).year == now.year
-                  and (parse_date_flexible(r.start_date) or datetime(1,1,1)).month == now.month]
-
     def count_recs(recs):
         return len(recs)
+
+    year_recs = [r for r in taken_records if r.start_date and (parse_date_flexible(r.start_date) or datetime(1,1,1)).year == leave_year]
+    month_recs = [r for r in taken_records if r.start_date
+                  and (parse_date_flexible(r.start_date) or datetime(1,1,1)).year == leave_year
+                  and (parse_date_flexible(r.start_date) or datetime(1,1,1)).month == leave_month]
 
     casual_taken_all = days_used([r for r in taken_records if r.type == "casual"])
     business_taken_year = days_used([r for r in year_recs if r.type == "business"])
@@ -193,18 +208,17 @@ def apply_leave(db: Session, employee_id: str, leave_type: str, start_date: str,
     status = "pending"
     approved_by = None
 
-    # Check balance sufficiency
-    if leave_type == "casual" and casual_remaining <= 0:
-        return {"success": False, "error": "Insufficient casual leave balance"}
-    if leave_type == "sick" and sick_remaining <= 0:
-        return {"success": False, "error": "Insufficient sick leave balance"}
-    if leave_type == "business" and business_remaining <= 0:
-        return {"success": False, "error": "Insufficient business leave balance"}
-    if leave_type == "emergency" and emergency_remaining <= 0:
-        return {"success": False, "error": "Insufficient emergency leave balance"}
-    if leave_type == "family" and family_remaining <= 0:
-        return {"success": False, "error": "Insufficient family leave balance"}
-    # unpaid has no limit, always goes to manager
+    # Balance check — reject if insufficient for requested days
+    if leave_type == "casual" and casual_remaining < days:
+        return {"success": False, "error": f"Insufficient casual leave balance (need {days}, have {casual_remaining})"}
+    if leave_type == "sick" and sick_remaining < days:
+        return {"success": False, "error": f"Insufficient sick leave balance (need {days}, have {sick_remaining})"}
+    if leave_type == "business" and business_remaining < days:
+        return {"success": False, "error": f"Insufficient business leave balance (need {days}, have {business_remaining})"}
+    if leave_type == "emergency" and emergency_remaining < days:
+        return {"success": False, "error": f"Insufficient emergency leave balance (need {days}, have {emergency_remaining})"}
+    if leave_type == "family" and family_remaining < days:
+        return {"success": False, "error": f"Insufficient family leave balance (need {days}, have {family_remaining})"}
 
     # Check for duplicate leave on same date
     existing = db.query(LeaveRecord).filter(
@@ -216,32 +230,28 @@ def apply_leave(db: Session, employee_id: str, leave_type: str, start_date: str,
     if existing:
         return {"success": False, "error": f"Already applied for {existing.type} leave on this date (Status: {existing.status})"}
 
+    # Auto-approval rules (untagged employees only, per leave's month)
     if leave_type == "casual":
         casual_taken_month = count_recs([r for r in month_recs if r.type == "casual"])
-        if casual_taken_month < 2:
+        if casual_taken_month < 2 and days <= 2:
             status = "auto-approved"
             approved_by = "system"
-
     elif leave_type == "sick":
         sick_taken_month = count_recs([r for r in month_recs if r.type == "sick"])
-        if sick_taken_month < 1:
+        if sick_taken_month < 1 and days <= 1:
             status = "auto-approved"
             approved_by = "system"
-
     elif leave_type == "emergency":
         emergency_taken_month = count_recs([r for r in month_recs if r.type == "emergency"])
-        if emergency_taken_month < 1:
+        if emergency_taken_month < 1 and days <= 1:
             status = "auto-approved"
             approved_by = "system"
-
-    # business, family, unpaid always go to manager
 
     # Tagged employees: always go to pending (no auto-approval)
     if emp.project_tag:
         status = "pending"
         approved_by = None
 
-    # Create leave record (no balance deduction — computed dynamically from approved records)
     new_leave = LeaveRecord(
         employee_id=employee_id,
         employee_name=emp.name,
@@ -281,14 +291,16 @@ def bulk_apply_leave(db: Session, employee_id: str, leave_type: str, dates: list
         return {"success": False, "error": "Employee not found"}
 
     now = datetime.now()
+    parsed = []
     for d in dates:
         dt = parse_date_flexible(d)
         if not dt:
             return {"success": False, "error": f"Invalid date format: {d}"}
-        if dt > now + timedelta(days=60):
-            return {"success": False, "error": "Cannot apply more than 2 months in advance"}
-        if dt < now - timedelta(days=1):
-            return {"success": False, "error": "Cannot apply for past dates"}
+        if dt > now + timedelta(days=70):
+            return {"success": False, "error": "Cannot apply more than 70 days in advance"}
+        if dt.date() < (now - timedelta(days=70)).date():
+            return {"success": False, "error": "Cannot apply for dates more than 70 days in the past"}
+        parsed.append(dt)
 
     duplicates = db.query(LeaveRecord).filter(
         LeaveRecord.employee_id == employee_id,
@@ -303,16 +315,7 @@ def bulk_apply_leave(db: Session, employee_id: str, leave_type: str, dates: list
         LeaveRecord.employee_id == employee_id,
         LeaveRecord.status.in_(["approved", "auto-approved", "paid_leave", "cancellation_requested"])
     ).all()
-    month_recs = [r for r in taken_records if r.start_date
-                  and (parse_date_flexible(r.start_date) or datetime(1,1,1)).year == now.year
-                  and (parse_date_flexible(r.start_date) or datetime(1,1,1)).month == now.month]
 
-    monthly_limit = {"casual": 2, "sick": 1, "emergency": 1}.get(leave_type, 0)
-    existing = len([r for r in month_recs if r.type == leave_type])
-    total = existing + len(dates)
-
-    # Balance check (annual limits)
-    ms = months_since(emp.doj)
     def days_used(recs):
         total = 0
         for r in recs:
@@ -322,44 +325,70 @@ def bulk_apply_leave(db: Session, employee_id: str, leave_type: str, dates: list
                 total += max(1, (end - start).days + 1)
         return total
 
-    year_recs = [r for r in taken_records if r.start_date and (parse_date_flexible(r.start_date) or datetime(1,1,1)).year == now.year]
+    # Group dates by (year, month) for per-month limit checks
+    from collections import defaultdict
+    dates_by_month = defaultdict(list)
+    all_years = set()
+    for d, dt in zip(dates, parsed):
+        dates_by_month[(dt.year, dt.month)].append(d)
+        all_years.add(dt.year)
+
+    # Year records: include all years the dates span (normally just one)
+    year_recs = [r for r in taken_records if r.start_date
+                 and (parse_date_flexible(r.start_date) or datetime(1,1,1)).year in all_years]
+
+    new_days = len(dates)
+
+    # Balance check (annual limits) — use the earliest year as reference for casual accrual
+    ms = months_since(emp.doj)
     casual_taken_all = days_used([r for r in taken_records if r.type == "casual"])
+    casual_max = ms * 2
+    casual_remaining = max(0, casual_max - casual_taken_all)
+
     sick_taken_this_year = days_used([r for r in year_recs if r.type == "sick"])
     business_taken_year = days_used([r for r in year_recs if r.type == "business"])
     emergency_taken_year = days_used([r for r in year_recs if r.type == "emergency"])
     family_taken_year = days_used([r for r in year_recs if r.type == "family"])
 
-    casual_max = ms * 2
-    casual_remaining = max(0, casual_max - casual_taken_all)
     sick_remaining = max(0, 12 - sick_taken_this_year)
     business_remaining = max(0, 20 - business_taken_year)
     emergency_remaining = max(0, 10 - emergency_taken_year)
     family_remaining = max(0, 10 - family_taken_year)
 
-    new_days = len(dates)
-
     if leave_type == "casual" and casual_remaining < new_days:
-        return {"success": False, "error": "Insufficient casual leave balance"}
+        return {"success": False, "error": f"Insufficient casual leave balance (need {new_days}, have {casual_remaining})"}
     if leave_type == "sick" and sick_remaining < new_days:
-        return {"success": False, "error": "Insufficient sick leave balance"}
+        return {"success": False, "error": f"Insufficient sick leave balance (need {new_days}, have {sick_remaining})"}
     if leave_type == "business" and business_remaining < new_days:
-        return {"success": False, "error": "Insufficient business leave balance"}
+        return {"success": False, "error": f"Insufficient business leave balance (need {new_days}, have {business_remaining})"}
     if leave_type == "emergency" and emergency_remaining < new_days:
-        return {"success": False, "error": "Insufficient emergency leave balance"}
+        return {"success": False, "error": f"Insufficient emergency leave balance (need {new_days}, have {emergency_remaining})"}
     if leave_type == "family" and family_remaining < new_days:
-        return {"success": False, "error": "Insufficient family leave balance"}
-    # unpaid has no limit
+        return {"success": False, "error": f"Insufficient family leave balance (need {new_days}, have {family_remaining})"}
 
-    # Determine status: if total exceeds monthly limit, ALL go to pending
-    if monthly_limit > 0 and total > monthly_limit:
-        status = "pending"
-        approved_by = None
-    elif monthly_limit > 0:
-        status = "auto-approved"
-        approved_by = "system"
-    else:
-        status = "pending"
-        approved_by = None
+    monthly_limit = {"casual": 2, "sick": 1, "emergency": 1}.get(leave_type, 0)
+    at_a_time_limit = {"casual": 2, "sick": 1, "emergency": 1}.get(leave_type, 999)
+
+    status = "pending"
+    approved_by = None
+
+    # Per-month check: if ANY month exceeds its limit, ALL go to pending
+    # Only casual, sick, emergency can auto-approve (within limits)
+    # Business, family, unpaid always need manager approval
+    if monthly_limit > 0:
+        can_auto_approve = True
+        for (yr, mo), month_dates in dates_by_month.items():
+            existing_in_month = len([r for r in taken_records if r.type == leave_type
+                                     and r.start_date
+                                     and (parse_date_flexible(r.start_date) or datetime(1,1,1)).year == yr
+                                     and (parse_date_flexible(r.start_date) or datetime(1,1,1)).month == mo])
+            new_in_month = len(month_dates)
+            if existing_in_month + 1 > monthly_limit or new_in_month > at_a_time_limit:
+                can_auto_approve = False
+                break
+        if can_auto_approve:
+            status = "auto-approved"
+            approved_by = "system"
 
     # Tagged employees: always go to pending (no auto-approval)
     if emp.project_tag:
@@ -467,11 +496,12 @@ def approve_cancellation(db: Session, leave_id: str):
     return {"success": True}
 
 
-def reject_cancellation(db: Session, leave_id: str):
+def reject_cancellation(db: Session, leave_id: str, reason: str = ""):
     leave = db.query(LeaveRecord).filter(LeaveRecord.id == leave_id).first()
     if not leave:
         return {"success": False, "error": "Leave not found"}
     leave.status = "approved"
+    leave.rejection_reason = reason
     db.commit()
     return {"success": True}
 
@@ -494,12 +524,26 @@ def get_leave_by_id(db: Session, leave_id: str):
             "applied_on": leave.applied_on,
             "reason": leave.reason,
             "cancellation_reason": leave.cancellation_reason,
+            "rejection_reason": leave.rejection_reason,
             "document": leave.document,
         }
     }
 
 
+def auto_cancel_stale_pending(db: Session):
+    cutoff = (datetime.now() - timedelta(days=4)).strftime("%Y-%m-%d %H:%M:%S")
+    stale = db.query(LeaveRecord).filter(
+        LeaveRecord.status == "pending",
+        LeaveRecord.applied_on < cutoff,
+    ).all()
+    for rec in stale:
+        db.delete(rec)
+    if stale:
+        db.commit()
+
+
 def get_pending_requests(db: Session, manager_id: str):
+    auto_cancel_stale_pending(db)
     team = db.query(Employee).filter(Employee.manager_id == manager_id).all()
     team_ids = [t.id for t in team]
     records = db.query(LeaveRecord).filter(
@@ -524,6 +568,7 @@ def get_cancellation_requests(db: Session, manager_id: str):
 
 
 def get_team_leaves(db: Session, manager_id: str):
+    auto_cancel_stale_pending(db)
     team = db.query(Employee).filter(Employee.manager_id == manager_id).all()
     team_ids = [t.id for t in team]
     records = db.query(LeaveRecord).filter(
@@ -602,13 +647,13 @@ def get_manager_info(db: Session, employee_id: str):
 
 def get_leave_policy():
     return {
-        "casual": "2/month auto-approved if within limit. >2/month → manager approval. Insufficient balance → application rejected. Balance deducted only after approval.",
-        "sick": "1/month auto-approved. >1/month → manager approval. Insufficient balance → rejected. Balance deducted only after approval.",
-        "business": "20/year. Always manager approval. Insufficient balance → rejected.",
-        "emergency": "10/year. 1/month auto-approved. >1/month → manager. Insufficient balance → rejected.",
-        "family": "10/year. Always manager approval. Insufficient balance → rejected.",
-        "unpaid": "No limit. Always manager approval. No balance required.",
-        "project_tag": "Project tag → ALL leaves require manager approval (no auto-approval).",
+        "casual": "Max 24/year, 2/month credited from DOJ (carried forward). First 2 requests/month → auto-approved (max 2 days at a time). 3rd+ request/month or >2 days at once → manager approval. No negative balance.",
+        "sick": "Max 12/year (no carry forward). First 1 request/month → auto-approved (max 1 day at a time). 2nd+ request/month or >1 day at once → manager approval. No negative balance.",
+        "business": "Max 20/year (no carry forward). Always manager approval. No auto-approval. No negative balance.",
+        "emergency": "Max 10/year (no carry forward). First 1 request/month → auto-approved (max 1 day at a time). 2nd+ request/month or >1 day at once → manager approval. No negative balance.",
+        "family": "Max 10/year (no carry forward). Always manager approval. No auto-approval. No negative balance.",
+        "unpaid": "No limit. Apply when all other leave types are exhausted. Always manager approval. No balance required.",
+        "project_tag": "Tagged employees → ALL leaves require manager approval (no auto-approval).",
         "cancellation": "Pending leaves can be cancelled (removed from history). Approved leaves create cancellation request for manager.",
         "advance_booking": "Up to 2 months in advance.",
     }

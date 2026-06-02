@@ -91,7 +91,7 @@ def approve_canc(req: ApproveRejectRequest, db: Session = Depends(get_db)):
 
 @router.post("/reject-cancellation")
 def reject_canc(req: ApproveRejectRequest, db: Session = Depends(get_db)):
-    return reject_cancellation(db, req.leave_id)
+    return reject_cancellation(db, req.leave_id, req.reason)
 
 
 @router.get("/pending/{manager_id}")

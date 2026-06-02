@@ -122,6 +122,29 @@ def create_employee(req: CreateEmployeeRequest, db: Session = Depends(get_db), u
     if existing_phone:
         raise HTTPException(status_code=400, detail="Phone number already exists with other employee. Please give another.")
 
+    from datetime import datetime, date
+
+    def parse_date(ds):
+        if not ds:
+            return None
+        try:
+            return datetime.strptime(ds, "%d-%m-%Y").date()
+        except ValueError:
+            return datetime.strptime(ds, "%Y-%m-%d").date()
+
+    def age_at(birth, target):
+        return target.year - birth.year - ((target.month, target.day) < (birth.month, birth.day))
+
+    dob_date = parse_date(req.dob)
+    doj_date = parse_date(req.doj)
+    today = date.today()
+
+    if dob_date:
+        if age_at(dob_date, today) < 18:
+            raise HTTPException(status_code=400, detail="Employee must be at least 18 years old as of today.")
+        if doj_date and age_at(dob_date, doj_date) < 18:
+            raise HTTPException(status_code=400, detail="Employee must be at least 18 years old at the date of joining.")
+
     count = db.query(Employee).filter(Employee.role == "employee").count()
     new_id = f"EMP{count + 1:03d}"
     password = generate_random_password()
@@ -133,7 +156,6 @@ def create_employee(req: CreateEmployeeRequest, db: Session = Depends(get_db), u
 
     total_accrued = 0
     if req.doj:
-        from datetime import datetime
         try:
             doj = datetime.strptime(req.doj, "%d-%m-%Y")
         except ValueError:
@@ -183,6 +205,13 @@ def create_employee(req: CreateEmployeeRequest, db: Session = Depends(get_db), u
         title="New Employee Onboarded 🎉",
         message=f"{full_name} ({new_id}) has been onboarded. Credentials sent to {req.email}.",
         type="employee_created",
+    ))
+    manager_id = req.manager_id or "MGR001"
+    db.add(Notification(
+        user_id=manager_id,
+        title="New Team Member 🎉",
+        message=f"{full_name} ({new_id}) has joined your team as {req.designation}.",
+        type="team_join",
     ))
     db.commit()
 

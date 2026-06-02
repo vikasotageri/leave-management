@@ -8,12 +8,27 @@ templates = None  # Set by main.py
 
 @router.get("/")
 def home(request: Request):
-    return templates.TemplateResponse(request, "login.html")
+    return templates.TemplateResponse(request, "login.html", {"role": ""})
 
 
 @router.get("/login")
 def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html")
+    return templates.TemplateResponse(request, "login.html", {"role": ""})
+
+
+@router.get("/employee/login")
+def employee_login(request: Request):
+    return templates.TemplateResponse(request, "login.html", {"role": "employee"})
+
+
+@router.get("/manager/login")
+def manager_login(request: Request):
+    return templates.TemplateResponse(request, "login.html", {"role": "manager"})
+
+
+@router.get("/hr/login")
+def hr_login(request: Request):
+    return templates.TemplateResponse(request, "login.html", {"role": "hr"})
 
 
 @router.get("/hr")

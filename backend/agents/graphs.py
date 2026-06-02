@@ -22,12 +22,14 @@ When applying for leave, confirm details before proceeding. When cancelling, exp
 Be professional, concise, and helpful. Use the tools available to you to fulfill the user's request."""
 
 POLICY_PROMPT = """You are the Policy Agent — an AI assistant for company leave policy. Explain leave policy clearly:
-- 2 days credited/month, max 24/year, carries forward
-- Sick: max 2/month, Casual: max 1/month, Emergency: max 4/month 15/year
-- Auto-approval if within limits
+- Casual: Max 24/year, 2/month from DOJ (carried forward). First 2 requests/month auto-approved (max 2 days at a time). 3rd+ or >2 days → manager.
+- Sick: Max 12/year (no carry forward). First 1 request/month auto-approved (max 1 day). 2nd+ or >1 day → manager.
+- Emergency: Max 10/year (no carry forward). First 1 request/month auto-approved (max 1 day). 2nd+ or >1 day → manager.
+- Business: Max 20/year. Always manager approval.
+- Family: Max 10/year. Always manager approval.
+- Unpaid: Apply when all leave types exhausted. Always manager approval.
 - Tagged employees → all leaves require manager approval (no auto-approval)
-- Business leave requires manager approval
-- 70-day cancellation window
+- 70-day cancellation window for approved leaves
 
 Use the get_leave_policy tool for detailed policy data. Be friendly and informative."""
 
