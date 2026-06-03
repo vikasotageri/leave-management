@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import get_db, Employee
 from auth import hash_password, verify_password, create_access_token, get_current_user
+from email_service import send_email
+import secrets
+import string
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -23,6 +26,45 @@ class CreateEmployeeRequest(BaseModel):
     address: str = ""
     project_tag: str | None = None
     manager_id: str | None = "MGR001"
+
+
+class ForgotPasswordRequest(BaseModel):
+    employee_id: str
+    email: str
+
+
+@router.post("/forgot-password")
+def forgot_password(req: ForgotPasswordRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    emp = db.query(Employee).filter(
+        Employee.id == req.employee_id,
+        Employee.email == req.email,
+        Employee.role == "employee",
+    ).first()
+    if not emp:
+        raise HTTPException(status_code=404, detail="No employee found with that ID and email. Please enter correct Employee ID and Email.")
+
+    new_pass = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
+    emp.password = hash_password(new_pass)
+    emp.plain_password = new_pass
+    db.commit()
+
+    html = f"""
+    <h2>Password Reset - LeaveFlow</h2>
+    <p>Dear {emp.name},</p>
+    <p>Your password has been reset as requested.</p>
+    <p><b>New Password:</b> {new_pass}</p>
+    <hr>
+    <p><b>Your Account Details:</b></p>
+    <p>Employee ID: <b>{emp.id}</b></p>
+    <p>Email: <b>{emp.email}</b></p>
+    <p>Date of Joining: <b>{emp.doj}</b></p>
+    <hr>
+    <p>Please log in and change your password.</p>
+    <p>Regards,<br>LeaveFlow Team</p>
+    """
+    background_tasks.add_task(send_email, emp.email, "LeaveFlow - Password Reset", html)
+
+    return {"success": True, "message": "New password sent to your email"}
 
 
 @router.post("/login")

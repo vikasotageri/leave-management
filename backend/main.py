@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.base import BaseHTTPMiddleware
 from dotenv import load_dotenv
 from database import Base, engine
 from seed import seed_database
@@ -19,6 +20,19 @@ seed_database()
 seed_policy_vector_store()
 
 app = FastAPI(title="LeaveFlow API", version="1.0.0")
+
+# Prevent browser caching of HTML pages (no back-button auto-login after logout)
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if response.headers.get("content-type", "").startswith("text/html"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+app.add_middleware(NoCacheMiddleware)
+
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 app.add_middleware(

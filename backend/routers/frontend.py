@@ -7,13 +7,13 @@ templates = None  # Set by main.py
 
 
 @router.get("/")
-def home(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"role": ""})
+def home():
+    return RedirectResponse("/employee/login")
 
 
 @router.get("/login")
-def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"role": ""})
+def login_page():
+    return RedirectResponse("/employee/login")
 
 
 @router.get("/employee/login")

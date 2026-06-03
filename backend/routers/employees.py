@@ -273,6 +273,7 @@ def delete_employee(employee_id: str, db: Session = Depends(get_db), user: Emplo
     if emp.role != "employee":
         raise HTTPException(status_code=400, detail="Can only delete employees")
 
+    db.query(LeaveRecord).filter(LeaveRecord.employee_id == employee_id).delete()
     db.query(Notification).filter(Notification.user_id == employee_id).delete()
     db.delete(emp)
     db.commit()

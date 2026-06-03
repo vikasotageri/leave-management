@@ -2,9 +2,9 @@
 # Start all 3 LeaveFlow server instances
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)/backend"
 echo "Starting LeaveFlow servers..."
-setsid nohup env PORT=8001 python3 main.py > /tmp/server8001.log 2>&1 &
-setsid nohup env PORT=8002 python3 main.py > /tmp/server8002.log 2>&1 &
-setsid nohup env PORT=8003 python3 main.py > /tmp/server8003.log 2>&1 &
+setsid nohup env PORT=8001 python3 "$BASE_DIR/main.py" > /tmp/server8001.log 2>&1 &
+setsid nohup env PORT=8002 python3 "$BASE_DIR/main.py" > /tmp/server8002.log 2>&1 &
+setsid nohup env PORT=8003 python3 "$BASE_DIR/main.py" > /tmp/server8003.log 2>&1 &
 sleep 2
 echo ""
 echo "✅ All servers started!"

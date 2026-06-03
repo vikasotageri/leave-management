@@ -48,14 +48,17 @@ function apiPut(path,body){return apiRequest('PUT',path,body)}
 
 // ===== Navigation =====
 function loadPage(url){
-  if(!isAuthenticated()&&url!=='/login'){window.location.href='/login';return}
+  if(!isAuthenticated()&&url!=='/employee/login'){window.location.href='/employee/login';return}
   window.location.href=url
 }
 
 function logout(){
+  const u=getUser()
+  const role=(u&&u.role)||'employee'
+  const loginPages={hr:'/hr/login',manager:'/manager/login',employee:'/employee/login'}
   sessionStorage.removeItem('token')
   sessionStorage.removeItem('user')
-  window.location.href='/login'
+  window.location.href=loginPages[role]||'/employee/login'
 }
 
 // ===== Clock =====
@@ -158,11 +161,16 @@ function initNavbar(){
   if(u.role==='hr'&&window.location.pathname==='/hr') loadEmployeeList()
 }
 
-// ===== Auth guard =====
+// ===== Auth guard (runs on every page load, including bfcache back-navigation) =====
 (function guard(){
   const path=window.location.pathname
-  const pub=['/login','/','/employee/login','/manager/login','/hr/login']
-  if(!isAuthenticated()&&!pub.includes(path)) window.location.href='/login'
+  const pub=['/employee/login','/manager/login','/hr/login']
+  if(!isAuthenticated()&&!pub.includes(path)){
+    if (path.startsWith('/employee')) window.location.href='/employee/login'
+    else if (path.startsWith('/manager')) window.location.href='/manager/login'
+    else if (path.startsWith('/hr')) window.location.href='/hr/login'
+    return
+  }
   if(isAuthenticated()&&pub.includes(path)){
     const u=getUser()
     if(u){
@@ -171,6 +179,16 @@ function initNavbar(){
     }
   }
 })()
+// Also catch browser back-button bfcache restore
+window.addEventListener('pageshow', function(e) {
+  if (e.persisted) {
+    const path=window.location.pathname
+    const pub=['/employee/login','/manager/login','/hr/login']
+    if(!isAuthenticated()&&!pub.includes(path)){
+      window.location.reload()
+    }
+  }
+})
 
 // ===== Chat helpers =====
 function addChatMessage(containerId, text, isUser){
@@ -265,9 +283,40 @@ async function sendChat(containerId, inputId, message){
     const res=await apiPost('/chat',{message,user_id:u.id,user_name:u.name,user_role:u.role,history:recentMessages})
     removeChatLoading()
     addChatMessage(containerId, res.response||'No response.', false)
-    // Auto-refresh employee dashboard after AI action
+    // Auto-refresh dashboards after AI action
     if (containerId === 'empChatMessages') {
       refreshEmployeeData(u.id)
+    } else if (containerId === 'hrChatMessages' && selectedEmployeeId) {
+      selectEmployee(selectedEmployeeId)
+    } else if (containerId === 'mgrChatMessages' && _mgrSelectedEmpId) {
+      loadEmpApprovals(_mgrSelectedEmpId)
+      apiGet('/employees/' + _mgrSelectedEmpId).then(emp => {
+        if (!emp) return
+        const lb = emp.leaveBalance || {}
+        const docBtnDetail = emp.hasDocument ? `<button onclick="viewDocument('${emp.id}')" class="text-xs text-blue-600 hover:text-blue-800 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1">📄 View</button>` : ''
+        document.getElementById('empDetailHeader').innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <p class="text-lg font-bold text-gray-800">${emp.name}</p>
+              <p class="text-xs text-gray-500">${emp.id} · ${emp.designation || '—'}${emp.gender ? ' · ⚤ ' + emp.gender : ''}${emp.projectTag ? ' · 🏷️ ' + emp.projectTag : ''}</p>
+            </div>
+            ${docBtnDetail}
+          </div>`
+        const balanceTypes = [
+          { key: 'casual', label: 'Casual', color: 'bg-blue-50 border-blue-200', text: 'text-blue-700' },
+          { key: 'sick', label: 'Sick', color: 'bg-green-50 border-green-200', text: 'text-green-700' },
+          { key: 'business', label: 'Business', color: 'bg-purple-50 border-purple-200', text: 'text-purple-700' },
+          { key: 'emergency', label: 'Emergency', color: 'bg-orange-50 border-orange-200', text: 'text-orange-700' },
+          { key: 'family', label: 'Family', color: 'bg-pink-50 border-pink-200', text: 'text-pink-700' },
+        ]
+        document.getElementById('empBalanceCards').innerHTML = balanceTypes.map(t => {
+          const b = lb[t.key] || {}
+          const rem = b.remaining || 0
+          const lim = b.limit || 0
+          return `<div class="${t.color} rounded-xl p-4 border"><p class="text-xs font-medium ${t.text}">${t.label}</p><p class="text-lg font-bold text-gray-800 mt-1">${rem}<span class="text-sm font-normal text-gray-400">/${lim}</span></p></div>`
+        }).join('')
+      })
+      loadManagerDashboard()
     }
   }catch(e){
     removeChatLoading()
@@ -366,6 +415,25 @@ window.tagEmployeeInline=function(id){
 
 window.selectEmployee=async function(id){
   selectedEmployeeId=id
+  sessionStorage.setItem('hrSelectedEmpId', id)
+  // Auto-refresh employee data every 15s to pick up changes (e.g. password reset)
+  if (window._hrRefreshInterval) clearInterval(window._hrRefreshInterval)
+  window._hrRefreshInterval = setInterval(() => {
+    if (selectedEmployeeId) {
+      apiGet('/employees/' + selectedEmployeeId).then(emp => {
+        if (!emp) return
+        // Update credentials section only
+        const credSection = document.getElementById('empCredSection')
+        if (credSection) {
+          credSection.innerHTML = `
+            <div class="p-3 bg-white rounded-xl border border-gray-200"><p class="text-xs text-gray-500">Employee ID</p><p class="font-bold text-blue-600 mt-0.5">${emp.id}</p></div>
+            <div class="p-3 bg-white rounded-xl border border-gray-200"><p class="text-xs text-gray-500">Email</p><p class="font-semibold text-gray-800 mt-0.5 break-all">${emp.email}</p></div>
+            <div class="p-3 bg-white rounded-xl border border-gray-200"><p class="text-xs text-gray-500">Password</p><p class="font-mono font-bold text-yellow-700 mt-0.5">${emp.password||'—'}</p></div>
+          `
+        }
+      }).catch(() => {})
+    }
+  }, 15000)
   loadEmployeeList()
   const profile=document.getElementById('employeeProfile')
   profile.innerHTML='<div class="text-center py-8"><p class="text-gray-400">Loading...</p></div>'
@@ -410,7 +478,7 @@ window.selectEmployee=async function(id){
           <h3 class="font-semibold text-gray-700">🔑 Credentials</h3>
           <button onclick="copyProfileCredentials('${emp.id}')" class="text-xs px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 font-medium transition" id="copyCredBtn${emp.id}">📋 Copy Credentials</button>
         </div>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-3 gap-3" id="empCredSection">
           <div class="p-3 bg-white rounded-xl border border-gray-200"><p class="text-xs text-gray-500">Employee ID</p><p class="font-bold text-blue-600 mt-0.5">${emp.id}</p></div>
           <div class="p-3 bg-white rounded-xl border border-gray-200"><p class="text-xs text-gray-500">Email</p><p class="font-semibold text-gray-800 mt-0.5 break-all">${emp.email}</p></div>
           <div class="p-3 bg-white rounded-xl border border-gray-200"><p class="text-xs text-gray-500">Password</p><p class="font-mono font-bold text-yellow-700 mt-0.5">${emp.password||'—'}</p></div>
@@ -450,7 +518,6 @@ window.selectEmployee=async function(id){
             <option value="auto-approved">Auto-Approved</option>
             <option value="rejected">Rejected</option>
             <option value="cancellation_requested">Cancellation Pending</option>
-            <option value="cancelled">Cancelled</option>
           </select>
           <select id="hrLeaveMonthFilter" onchange="renderHrLeaveHistory()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 bg-white">
             <option value="">All Months</option>
@@ -541,7 +608,6 @@ window.selectEmployee=async function(id){
           else if (isApproved) { statLabel = 'Approved'; statColor = 'bg-green-100 text-green-700'; statIcon = '✅' }
           else if (isCancellationReq) { statLabel = 'Cancellation Pending'; statColor = 'bg-blue-100 text-blue-700'; statIcon = '🔶' }
           else if (isRejected) { statLabel = 'Rejected'; statColor = 'bg-red-100 text-red-700'; statIcon = '❌' }
-          else if (status === 'cancelled') { statLabel = 'Cancelled'; statColor = 'bg-gray-100 text-gray-500'; statIcon = '🗑️' }
           else { statLabel = status; statColor = 'bg-gray-100 text-gray-600'; statIcon = '📋' }
           const hasDoc = l.document || l.attachment
           const appliedOn = l.applied_on || ''
@@ -638,6 +704,7 @@ window.confirmDeleteEmployee=async function(){
   try{
     await apiDelete('/employees/'+selectedEmployeeId)
     closeDeleteModal()
+    sessionStorage.removeItem('hrSelectedEmpId')
     selectedEmployeeId=null
     document.getElementById('employeeProfile').innerHTML='<div class="flex flex-col items-center justify-center py-16 text-gray-400"><div class="text-7xl mb-4 opacity-50">👤</div><p class="text-xl font-medium text-gray-300">Select an employee</p><p class="text-sm text-gray-300 mt-1">Click on any employee from the list to view their profile</p></div>'
     loadEmployeeList()
@@ -1029,7 +1096,10 @@ window.weekCalSubmit = async function () {
   weekCalSelections = {}
   document.getElementById('weekCalReason').value = ''
   if (fileInput) fileInput.value = ''
-  loadEmployeeDashboard()
+  const savedOffset = weekCalOffset
+  await loadEmployeeDashboard()
+  weekCalOffset = savedOffset
+  renderWeekCal()
 }
 
 async function loadEmployeeDashboard() {
@@ -1098,9 +1168,6 @@ async function loadEmployeeDashboard() {
             actionHtml = `<button onclick="cancelLeave('${l.id}')" class="text-xs px-3 py-1 bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 font-medium">Cancel</button>`
           } else if (isRejected) {
             statColor = 'bg-red-100 text-red-700'; statIcon = '❌'; statLabel = 'Rejected'
-            actionHtml = '<span class="text-xs text-gray-400">--</span>'
-          } else if (status === 'cancelled') {
-            statColor = 'bg-gray-100 text-gray-500'; statIcon = '🗑️'; statLabel = 'Cancelled'
             actionHtml = '<span class="text-xs text-gray-400">--</span>'
           } else {
             statColor = 'bg-gray-100 text-gray-600'; statIcon = '📋'; statLabel = status
@@ -1180,6 +1247,21 @@ async function loadEmployeeDashboard() {
 
 async function refreshEmployeeData(empId) {
   try {
+    // Refresh leave balance cards
+    const lbRes = await apiGet('/employees/' + empId + '/balance')
+    const lb = lbRes || {}
+    const cards = document.getElementById('leaveBalanceCards')
+    if (cards) {
+      const types = ['sick', 'casual', 'business', 'emergency', 'family']
+      const colors = { sick: 'green', casual: 'blue', business: 'purple', emergency: 'orange', family: 'pink' }
+      const icons = { sick: '🤒', casual: '😎', business: '💼', emergency: '🚨', family: '👨‍👩‍👧‍👦' }
+      const labels = { sick: 'Sick', casual: 'Casual', business: 'Business', emergency: 'Emergency/Personal', family: 'Family/Vacation' }
+      cards.innerHTML = types.map(t => {
+        const lt = lb[t] || {}
+        const remaining = lt.remaining || 0
+        return `<div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition text-center"><div class="text-3xl mb-1">${icons[t]}</div><p class="text-xs text-gray-500 mb-3">${labels[t]}</p><div class="text-3xl font-bold text-${colors[t]}-600">${remaining}</div></div>`
+      }).join('')
+    }
     // Refresh upcoming leaves
     const upcoming = await apiGet('/employees/' + empId + '/upcoming')
     const ul = document.getElementById('upcomingLeaves')
@@ -1319,11 +1401,6 @@ function renderLeaveHistory(leaves) {
       statColor = 'bg-red-100 text-red-700'
       statIcon = '❌'
       actionHtml = '<span class="text-xs text-gray-400">--</span>'
-    } else if (status === 'cancelled') {
-      statLabel = 'Cancelled'
-      statColor = 'bg-gray-100 text-gray-500'
-      statIcon = '🗑️'
-      actionHtml = '<span class="text-xs text-gray-400">--</span>'
     } else {
       statLabel = status
       statColor = 'bg-gray-100 text-gray-600'
@@ -1418,7 +1495,7 @@ window.cancelLeave = async function (leaveId) {
   const isPending = st === 'pending'
   const isCancellationReq = st === 'cancellation_requested'
   if (isPending) {
-    if (!confirm('Cancel this pending leave?')) return
+    if (!confirm('Cancel this pending leave? It will be removed from history.')) return
     try {
       await apiPost('/leaves/cancel', { leaveId, reason: 'Cancelled by employee' })
       loadEmployeeDashboard()
@@ -1761,6 +1838,7 @@ window.openEmployeeView = async function (empId) {
   }).join('')
 
   await loadEmpApprovals(empId)
+  sessionStorage.setItem('mgrViewState', JSON.stringify({ tab: 'approvals', empId, empApprovalTab: window._mgrEmpApprovalTab || 'pending' }))
 }
 
 window.closeEmployeeView = function () {
@@ -1777,6 +1855,7 @@ window.closeEmployeeView = function () {
     approvals.classList.remove('hidden')
   }
   _mgrSelectedEmpId = null
+  sessionStorage.setItem('mgrViewState', JSON.stringify({ tab: isDashActive ? 'dashboard' : 'approvals', empId: null }))
 }
 
 async function loadEmpApprovals(empId) {
@@ -1893,6 +1972,7 @@ function renderEmpLeaveCards(container, items, type, empId) {
 }
 
 window.switchEmpApprovalTab = function (tab) {
+  window._mgrEmpApprovalTab = tab
   const tabs = ['pending', 'cancellations', 'history']
   tabs.forEach(t => {
     const el = document.getElementById('empApprovalTab' + t.charAt(0).toUpperCase() + t.slice(1))
@@ -1958,6 +2038,9 @@ window.switchEmpApprovalTab = function (tab) {
   }).join('')
 
   list.innerHTML = html
+  if (_mgrSelectedEmpId) {
+    sessionStorage.setItem('mgrViewState', JSON.stringify({ tab: 'approvals', empId: _mgrSelectedEmpId, empApprovalTab: window._mgrEmpApprovalTab || 'pending' }))
+  }
 }
 
 let _empHistPage = 0
@@ -1977,8 +2060,8 @@ function renderEmpHistory(history) {
   html += '</select>'
   html += '<select id="empHistStatusFilter" onchange="applyEmpHistFilter()" class="px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none">'
   html += '<option value="">All Status</option>'
-  ;['approved', 'rejected', 'pending', 'cancellation_requested', 'cancelled'].forEach(s => {
-    const label = s === 'approved' ? 'Approved' : s === 'cancellation_requested' ? 'Cancellation Pending' : s === 'cancelled' ? 'Cancelled' : s.charAt(0).toUpperCase() + s.slice(1)
+  ;['approved', 'rejected', 'pending', 'cancellation_requested'].forEach(s => {
+    const label = s === 'approved' ? 'Approved' : s === 'cancellation_requested' ? 'Cancellation Pending' : s.charAt(0).toUpperCase() + s.slice(1)
     html += '<option value="' + s + '" ' + (filters.status === s ? 'selected' : '') + '>' + label + '</option>'
   })
   html += '</select>'
@@ -2029,7 +2112,6 @@ function renderEmpHistory(history) {
       else if (s === 'rejected') { statLabel = 'Rejected'; statColor = 'bg-red-100 text-red-700'; statIcon = '❌' }
       else if (s === 'pending') { statLabel = 'Pending'; statColor = 'bg-yellow-100 text-yellow-700'; statIcon = '⏳' }
       else if (s === 'cancellation_requested') { statLabel = 'Cancellation Pending'; statColor = 'bg-blue-100 text-blue-700'; statIcon = '🔶' }
-      else if (s === 'cancelled') { statLabel = 'Cancelled'; statColor = 'bg-gray-100 text-gray-500'; statIcon = '🗑️' }
       else { statLabel = s; statColor = 'bg-gray-100 text-gray-600'; statIcon = '📋' }
       const ld = l.startDate || l.start_date || ''
       const ao = l.applied_on || ''
@@ -2085,6 +2167,7 @@ window.switchMgrTab = function (tab) {
   if (tab === 'dashboard') {
     loadManagerDashboard()
   }
+  sessionStorage.setItem('mgrViewState', JSON.stringify({ tab, empId: null }))
 }
 
 window.loadTeamApprovalsList = async function () {
@@ -2193,6 +2276,33 @@ window.rejectCancellation = async function (id) {
 function refreshAfterAction() {
   if (_mgrSelectedEmpId) {
     loadEmpApprovals(_mgrSelectedEmpId)
+    // Refresh employee balance & header in detail view
+    apiGet('/employees/' + _mgrSelectedEmpId).then(emp => {
+      if (!emp) return
+      const lb = emp.leaveBalance || {}
+      const docBtnDetail = emp.hasDocument ? `<button onclick="viewDocument('${emp.id}')" class="text-xs text-blue-600 hover:text-blue-800 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1">📄 View</button>` : ''
+      document.getElementById('empDetailHeader').innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <p class="text-lg font-bold text-gray-800">${emp.name}</p>
+            <p class="text-xs text-gray-500">${emp.id} · ${emp.designation || '—'}${emp.gender ? ' · ⚤ ' + emp.gender : ''}${emp.projectTag ? ' · 🏷️ ' + emp.projectTag : ''}</p>
+          </div>
+          ${docBtnDetail}
+        </div>`
+      const balanceTypes = [
+        { key: 'casual', label: 'Casual', color: 'bg-blue-50 border-blue-200', text: 'text-blue-700' },
+        { key: 'sick', label: 'Sick', color: 'bg-green-50 border-green-200', text: 'text-green-700' },
+        { key: 'business', label: 'Business', color: 'bg-purple-50 border-purple-200', text: 'text-purple-700' },
+        { key: 'emergency', label: 'Emergency', color: 'bg-orange-50 border-orange-200', text: 'text-orange-700' },
+        { key: 'family', label: 'Family', color: 'bg-pink-50 border-pink-200', text: 'text-pink-700' },
+      ]
+      document.getElementById('empBalanceCards').innerHTML = balanceTypes.map(t => {
+        const b = lb[t.key] || {}
+        const rem = b.remaining || 0
+        const lim = b.limit || 0
+        return `<div class="${t.color} rounded-xl p-4 border"><p class="text-xs font-medium ${t.text}">${t.label}</p><p class="text-lg font-bold text-gray-800 mt-1">${rem}<span class="text-sm font-normal text-gray-400">/${lim}</span></p></div>`
+      }).join('')
+    })
   }
   loadManagerDashboard()
 }
@@ -2255,13 +2365,46 @@ window.setChatPrompt=function(text){
 }
 
 // ===== Page init =====
-document.addEventListener('DOMContentLoaded',function(){
+document.addEventListener('DOMContentLoaded',async function(){
   const path=window.location.pathname
   if(!isAuthenticated()) return
   initNavbar()
-  if(path==='/hr') loadEmployeeList()
+  if(path==='/hr'){
+    loadEmployeeList()
+    try {
+      const savedEmpId = sessionStorage.getItem('hrSelectedEmpId')
+      if (savedEmpId) {
+        selectEmployee(savedEmpId)
+      }
+    } catch(e) { console.error('Restore hr state:', e) }
+  }
   if(path==='/employee') loadEmployeeDashboard()
-  if(path==='/manager') loadManagerDashboard()
+  if(path==='/manager'){
+    await loadManagerDashboard()
+    try {
+      const raw = sessionStorage.getItem('mgrViewState')
+      if (raw) {
+        const state = JSON.parse(raw)
+        if (state.empId && state.tab === 'approvals') {
+          // Re-open employee detail view
+          const empSel = document.getElementById('mgrEmployeeSelect')
+          if (empSel) empSel.value = state.empId
+          // Need to ensure _mgrEmployees is populated before openEmployeeView
+          if (_mgrEmployees && _mgrEmployees.find(e => e.id === state.empId)) {
+            switchMgrTab('approvals')
+            await openEmployeeView(state.empId)
+            if (state.empApprovalTab && state.empApprovalTab !== 'pending') {
+              switchEmpApprovalTab(state.empApprovalTab)
+            }
+          } else {
+            switchMgrTab('approvals')
+          }
+        } else if (state.tab === 'approvals') {
+          switchMgrTab('approvals')
+        }
+      }
+    } catch(e) { console.error('Restore mgr state:', e) }
+  }
 })
 
 // ===== Set project tag =====
