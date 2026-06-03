@@ -18,17 +18,17 @@ def login_page(request: Request):
 
 @router.get("/employee/login")
 def employee_login(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"role": "employee"})
+    return templates.TemplateResponse(request, "employee_login.html")
 
 
 @router.get("/manager/login")
 def manager_login(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"role": "manager"})
+    return templates.TemplateResponse(request, "manager_login.html")
 
 
 @router.get("/hr/login")
 def hr_login(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"role": "hr"})
+    return templates.TemplateResponse(request, "hr_login.html")
 
 
 @router.get("/hr")
