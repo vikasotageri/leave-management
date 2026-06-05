@@ -8,7 +8,10 @@ import uuid
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./leaveflow.db")
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -99,4 +102,13 @@ class Holiday(Base):
     name = Column(String, nullable=False)
 
 
-Base.metadata.create_all(bind=engine)
+import time
+for attempt in range(5):
+    try:
+        Base.metadata.create_all(bind=engine)
+        break
+    except Exception:
+        if attempt < 4:
+            time.sleep(attempt + 1)
+        else:
+            raise

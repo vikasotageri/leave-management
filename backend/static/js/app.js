@@ -391,7 +391,7 @@ window.editProjectTagUi=async function(id){
   if(!tagInputDiv.classList.contains('hidden')){tagInputDiv.classList.add('hidden');return}
   tagInputDiv.classList.remove('hidden')
   const emp=tagInputDiv.getAttribute('data-current-tag')||''
-  tagInputDiv.innerHTML='<input type="text" id="projectTagField'+id+'" placeholder="Enter project name..." class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" value="'+emp+'"> <button onclick="saveTag(\''+id+'\')" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1">✓ Tag</button>'
+  tagInputDiv.innerHTML='<input type="text" id="projectTagField'+id+'" placeholder="Enter project name..." class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" value="'+emp+'"><button onclick="saveTag(\''+id+'\')" class="w-full px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">✓ Tag</button>'
   document.getElementById('projectTagField'+id).focus()
   document.getElementById('projectTagField'+id).setSelectionRange(emp.length,emp.length)
 }
@@ -471,8 +471,8 @@ window.selectEmployee=async function(id){
           <div class="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200"><p class="text-xs text-gray-500 mb-1">🌍 Nationality</p><p class="text-sm font-semibold text-gray-800">${emp.nationality||'—'}</p></div>
           <div class="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200"><p class="text-xs text-gray-500 mb-1">⚤ Gender</p><p class="text-sm font-semibold text-gray-800">${emp.gender||'—'}</p></div>
           ${emp.projectTag
-            ? `<div class="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200" id="projectTagSection${emp.id}"><p class="text-xs text-gray-500 mb-1">🏷️ Project Tag</p><p class="text-sm font-semibold text-gray-800 flex items-center gap-2">🏷️ ${emp.projectTag} <button onclick="editProjectTagUi('${emp.id}')" class="text-blue-500 hover:text-blue-700 text-xs" title="Edit">✏️</button> <button onclick="untagEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 text-xs" title="Remove tag">✕ Untag</button></p><div id="tagInput${emp.id}" class="hidden mt-2 flex gap-2" data-current-tag="${emp.projectTag}"></div></div>`
-            : `<div class="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 flex flex-col items-center justify-center"><button onclick="editProjectTagUi('${emp.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium px-4 py-2 rounded-lg border border-blue-300 hover:bg-blue-50 transition">+ Add Project Tag</button><div id="tagInput${emp.id}" class="hidden mt-2 flex gap-2 w-full"></div></div>`}
+            ? `<div class="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200" id="projectTagSection${emp.id}"><p class="text-xs text-gray-500 mb-1">🏷️ Project Tag</p><p class="text-sm font-semibold text-gray-800 flex items-center gap-2">🏷️ ${emp.projectTag} <button onclick="editProjectTagUi('${emp.id}')" class="text-blue-500 hover:text-blue-700 text-xs" title="Edit">✏️</button> <button onclick="untagEmployee('${emp.id}')" class="text-red-500 hover:text-red-700 text-xs" title="Remove tag">✕ Untag</button></p><div id="tagInput${emp.id}" class="hidden mt-2 flex flex-col gap-2 w-full" data-current-tag="${emp.projectTag}"></div></div>`
+            : `<div class="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200"><div class="flex flex-col items-center"><button onclick="editProjectTagUi('${emp.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium px-4 py-2 rounded-lg border border-blue-300 hover:bg-blue-50 transition">+ Add Project Tag</button><div id="tagInput${emp.id}" class="hidden mt-2 flex flex-col gap-2 w-full"></div></div></div>`}
           <div class="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 col-span-2"><p class="text-xs text-gray-500 mb-1">📍 Address</p><p class="text-sm font-semibold text-gray-800">${emp.address||'—'}</p></div>
           <div class="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
             <p class="text-xs text-gray-500 mb-1">📄 Document</p>
@@ -513,8 +513,8 @@ window.selectEmployee=async function(id){
           <h3 class="font-semibold text-gray-700">📋 Leave History</h3>
         </div>
         <div class="flex gap-2 mb-2">
-          <input id="hrLeaveSearch" oninput="renderHrLeaveHistory()" placeholder="🔍 Search by Request ID or Leave date..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400">
-          <select id="hrLeaveTypeFilter" onchange="renderHrLeaveHistory()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 bg-white">
+          <input id="hrLeaveSearch" oninput="applyHrLeaveFilter()" placeholder="🔍 Search by Request ID or Leave date..." class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400">
+          <select id="hrLeaveTypeFilter" onchange="applyHrLeaveFilter()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 bg-white">
             <option value="">All Types</option>
             <option value="casual">Casual</option>
             <option value="sick">Sick</option>
@@ -523,7 +523,7 @@ window.selectEmployee=async function(id){
             <option value="family">Family</option>
             <option value="unpaid">Unpaid</option>
           </select>
-          <select id="hrLeaveStatusFilter" onchange="renderHrLeaveHistory()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 bg-white">
+          <select id="hrLeaveStatusFilter" onchange="applyHrLeaveFilter()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 bg-white">
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
@@ -531,14 +531,14 @@ window.selectEmployee=async function(id){
             <option value="rejected">Rejected</option>
             <option value="cancellation_requested">Cancellation Pending</option>
           </select>
-          <select id="hrLeaveMonthFilter" onchange="renderHrLeaveHistory()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 bg-white">
+          <select id="hrLeaveMonthFilter" onchange="applyHrLeaveFilter()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 bg-white">
             <option value="">All Months</option>
             <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
             <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
             <option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option>
             <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
           </select>
-          <select id="hrLeaveYearFilter" onchange="renderHrLeaveHistory()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 bg-white">
+          <select id="hrLeaveYearFilter" onchange="applyHrLeaveFilter()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 bg-white">
             <option value="">All Years</option>
             <option value="2024">2024</option>
             <option value="2025">2025</option>
@@ -555,98 +555,20 @@ window.selectEmployee=async function(id){
                 <th class="px-3 py-2 text-left">Leave on</th>
                 <th class="px-3 py-2 text-left">Reason</th>
                 <th class="px-3 py-2 text-left">Status</th>
-                <th class="px-3 py-2 text-left">View</th>
+                <th class="px-3 py-2 text-left">Document</th>
               </tr>
             </thead>
             <tbody id="empLeaveHistoryBody"></tbody>
           </table>
           <div id="empLeaveHistoryEmpty" class="text-gray-400 text-sm text-center py-4 hidden">No leave records yet</div>
-          <div id="hrLeavePagination" class="flex items-center justify-between mt-3 hidden">
-            <button onclick="hrLeavePrevPage()" class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">◀ Back 10</button>
-            <span id="hrLeavePageInfo" class="text-sm text-gray-500"></span>
-            <button onclick="hrLeaveNextPage()" class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition">Next 10 ▶</button>
-          </div>
+          <div id="hrLeavePagination" class="flex items-center justify-between mt-3 hidden"></div>
         </div>
       </div>
     `
-    window._hrLeaveAll = await apiGet('/employees/'+id+'/leaves?limit=200')
-    window._hrLeavePage = 0
-    const HR_LEAVE_PAGE_SIZE = 10
-    window.renderHrLeaveHistory = function() {
-      window._hrLeavePage = 0
-      const leaves = window._hrLeaveAll || []
-      const q = (document.getElementById('hrLeaveSearch')?.value || '').toLowerCase()
-      const typeFilter = (document.getElementById('hrLeaveTypeFilter')?.value || '').toLowerCase()
-      const statusFilter = (document.getElementById('hrLeaveStatusFilter')?.value || '').toLowerCase()
-      const monthF = document.getElementById('hrLeaveMonthFilter')?.value || ''
-      const yearF = document.getElementById('hrLeaveYearFilter')?.value || ''
-      const filtered = leaves.filter(l => {
-        if (!q && !typeFilter && !statusFilter && !monthF && !yearF) return true
-        const leaveDate = (l.startDate || l.start_date || '').toLowerCase()
-        const id = (l.id || '').toLowerCase()
-        const type = (l.type || '').toLowerCase()
-        const status = (l.status || '').toLowerCase()
-        const matchQ = !q || id.includes(q) || leaveDate.includes(q)
-        const matchType = !typeFilter || type === typeFilter
-        const matchStatus = !statusFilter || status === statusFilter
-        const p = getLeaveDateParts(l)
-        const matchMonth = !monthF || p.month === parseInt(monthF)
-        const matchYear = !yearF || p.year === parseInt(yearF)
-        return matchQ && matchType && matchStatus && matchMonth && matchYear
-      })
-      const sorted = [...filtered].sort((a, b) => ((b.applied_on || '') > (a.applied_on || '') ? 1 : -1))
-      const totalPages = Math.ceil(sorted.length / HR_LEAVE_PAGE_SIZE)
-      if (window._hrLeavePage >= totalPages) window._hrLeavePage = Math.max(0, totalPages - 1)
-      if (window._hrLeavePage < 0) window._hrLeavePage = 0
-      const start = window._hrLeavePage * HR_LEAVE_PAGE_SIZE
-      const pageItems = sorted.slice(start, start + HR_LEAVE_PAGE_SIZE)
-      const tb = document.getElementById('empLeaveHistoryBody')
-      const empEmpty = document.getElementById('empLeaveHistoryEmpty')
-      const pagination = document.getElementById('hrLeavePagination')
-      if (pageItems.length === 0) {
-        tb.innerHTML = ''
-        if (empEmpty) empEmpty.classList.remove('hidden')
-        if (pagination) pagination.classList.add('hidden')
-      } else {
-        if (empEmpty) empEmpty.classList.add('hidden')
-        tb.innerHTML = pageItems.map(l => {
-          const status = (l.status || l.Status || '').toLowerCase()
-          const isApproved = status === 'approved' || status === 'auto-approved'
-          const isCancellationReq = status === 'cancellation_requested'
-          const isRejected = status === 'rejected'
-          const isPending = status === 'pending'
-          let statLabel, statColor, statIcon
-          if (isPending) { statLabel = 'Pending'; statColor = 'bg-yellow-100 text-yellow-700'; statIcon = '⏳' }
-          else if (isApproved) { statLabel = 'Approved'; statColor = 'bg-green-100 text-green-700'; statIcon = '✅' }
-          else if (isCancellationReq) { statLabel = 'Cancellation Pending'; statColor = 'bg-blue-100 text-blue-700'; statIcon = '🔶' }
-          else if (isRejected) { statLabel = 'Rejected'; statColor = 'bg-red-100 text-red-700'; statIcon = '❌' }
-          else { statLabel = status; statColor = 'bg-gray-100 text-gray-600'; statIcon = '📋' }
-          const hasDoc = l.document || l.attachment
-          const appliedOn = l.applied_on || ''
-          const appliedDate = appliedOn.split(' ')[0] || appliedOn
-          const appliedTime = appliedOn.split(' ')[1] || ''
-          const cancelTitle = isCancellationReq ? (l.cancellation_reason||'').replace(/"/g,'&quot;') : ''
-          const rejectTitle = isRejected ? (l.rejection_reason||'').replace(/"/g,'&quot;') : ''
-          return `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="px-3 py-2 font-mono text-xs text-gray-600">${l.id}</td><td class="px-3 py-2 text-sm whitespace-nowrap">${toDisplayDate(appliedDate)}<br><span class="text-xs text-gray-400">${appliedTime}</span></td><td class="px-3 py-2 text-sm capitalize">${l.type||'Leave'}</td><td class="px-3 py-2 text-sm">${toDisplayDate(l.startDate||l.start_date)}</td><td class="px-3 py-2 text-sm text-gray-500 max-w-[100px] truncate" title="${(l.reason||'').replace(/"/g,'&quot;')}">${l.reason||'—'}</td><td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full font-medium ${statColor}"${cancelTitle ? ` title="${cancelTitle}"` : rejectTitle ? ` title="${rejectTitle}"` : ''}>${statIcon} ${statLabel}</span></td><td class="px-3 py-2 text-xs">${hasDoc ? `<button onclick="viewLeaveDoc('${l.id}')" class="text-blue-600 hover:text-blue-800">📄 View</button>` : '—'}</td></tr>`
-        }).join('')
-        if (pagination) {
-          if (totalPages > 1) {
-            pagination.classList.remove('hidden')
-            document.getElementById('hrLeavePageInfo').textContent = `Page ${window._hrLeavePage + 1} of ${totalPages} (${sorted.length} total)`
-          } else {
-            pagination.classList.add('hidden')
-          }
-        }
-      }
-    }
-    window.hrLeavePrevPage = function() {
-      if (window._hrLeavePage > 0) { window._hrLeavePage--; window.renderHrLeaveHistory() }
-    }
-    window.hrLeaveNextPage = function() {
-      const total = (window._hrLeaveAll || []).length
-      if ((window._hrLeavePage + 1) * HR_LEAVE_PAGE_SIZE < total) { window._hrLeavePage++; window.renderHrLeaveHistory() }
-    }
-    window.renderHrLeaveHistory()
+    const leaveData = await apiGet('/employees/'+id+'/leaves?limit=200')
+    _hrLeaveData = leaveData
+    _hrLeavePage = 0
+    renderHrLeaveHistory(leaveData)
   } catch (e) { profile.innerHTML = '<p class="text-red-500">Error: ' + e.message + '</p>' }
 }
 
@@ -1537,12 +1459,19 @@ window.deleteLeave = async function (leaveId) {
   } catch (e) { alert('Error: ' + e.message) }
 }
 
-window.viewLeaveDoc = async function (leaveId) {
+window.viewLeaveDoc = function (leaveId) {
   try {
-    const leaves = window._empLeaveHistory || window._empApprovalData?.history || window._hrLeaveAll || []
+    const leaves = window._empLeaveHistory || (window._empApprovalData ? [...(window._empApprovalData.history||[]), ...(window._empApprovalData.pending||[]), ...(window._empApprovalData.cancellations||[])] : null) || (typeof _hrLeaveData !== 'undefined' ? _hrLeaveData : null) || []
     const lv = leaves.find(l => l.id === leaveId)
-    if (lv && lv.document) window.open(lv.document, '_blank')
-    else alert('No document attached')
+    if (!lv || !lv.document) { alert('No document attached'); return }
+    const b64 = lv.document.split(',')[1]
+    if (!b64) { window.open(lv.document, '_blank'); return }
+    const byteChars = atob(b64)
+    const byteNums = new Array(byteChars.length)
+    for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i)
+    const byteArr = new Uint8Array(byteNums)
+    const blob = new Blob([byteArr], { type: 'application/pdf' })
+    window.open(URL.createObjectURL(blob), '_blank')
   } catch (e) { alert('Error loading document') }
 }
 
@@ -1947,6 +1876,7 @@ function renderEmpLeaveCards(container, items, type, empId) {
     const isCR = status === 'cancellation_requested'
     const leaveDate = l.start_date || l.startDate || ''
     const appliedDate = l.applied_on ? l.applied_on.split(' ')[0] : ''
+    const hasDoc = l.document || l.attachment
 
     if (type === 'past' && isCR) {
       return '<div class="p-4 bg-white rounded-xl border border-gray-200">'
@@ -1957,6 +1887,7 @@ function renderEmpLeaveCards(container, items, type, empId) {
         + (l.cancellation_reason || l.cancellationReason ? '<p class="text-xs text-red-400 mt-0.5">Cancel reason: ' + (l.cancellation_reason || l.cancellationReason) + '</p>' : '')
         + '</div><span class="text-xs px-2.5 py-1 rounded-full font-medium bg-blue-100 text-blue-700 flex-shrink-0">🔶 Cancellation Pending</span></div>'
         + '<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100">'
+        + (hasDoc ? '<button onclick="viewLeaveDoc(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 font-medium">📄 Document</button>' : '')
         + '<button onclick="approveCancellation(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-green-100 text-green-700 rounded-full hover:bg-green-200 font-medium">Approve Cancellation</button>'
         + '<button onclick="rejectCancellation(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-red-100 text-red-700 rounded-full hover:bg-red-200 font-medium">Reject</button>'
         + '</div></div>'
@@ -1967,9 +1898,10 @@ function renderEmpLeaveCards(container, items, type, empId) {
       + '<div class="flex-1 min-w-0"><p class="text-sm font-semibold text-gray-800 capitalize">' + l.type + ' Leave</p>'
       + '<p class="text-xs text-gray-500 mt-0.5">' + toDisplayDate(leaveDate) + '</p>'
       + '<p class="text-xs text-gray-400">Applied: ' + toDisplayDate(appliedDate) + '</p>'
-      + (l.reason ? '<p class="text-xs text-gray-400 mt-0.5">Reason: ' + l.reason + '</p>' : '')
+      + (l.reason ? '<p class="text-xs text-blue-600 mt-0.5">Reason: ' + l.reason + '</p>' : '')
       + '</div><span class="text-xs px-2.5 py-1 rounded-full font-medium bg-yellow-100 text-yellow-700 flex-shrink-0">⏳ Pending</span></div>'
       + '<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100">'
+      + (hasDoc ? '<button onclick="viewLeaveDoc(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 font-medium">📄 Document</button>' : '')
       + '<button onclick="approveLeave(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-green-100 text-green-700 rounded-full hover:bg-green-200 font-medium">Approve</button>'
       + '<button onclick="rejectLeave(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-red-100 text-red-700 rounded-full hover:bg-red-200 font-medium">Reject</button>'
       + '</div></div>'
@@ -2019,6 +1951,7 @@ window.switchEmpApprovalTab = function (tab) {
     const leaveDate = l.startDate || l.start_date || ''
     const appliedOn = l.applied_on || ''
     const appliedDate = appliedOn ? appliedOn.split(' ')[0] : appliedOn
+    const hasDocAppr = l.document || l.attachment
     if (tab === 'pending') {
       return '<div class="p-4 bg-white rounded-xl border border-gray-200">'
         + '<div class="flex items-start justify-between">'
@@ -2026,9 +1959,10 @@ window.switchEmpApprovalTab = function (tab) {
         + '<p class="text-sm font-semibold text-gray-800 mt-2 capitalize">' + l.type + ' Leave</p>'
         + '<p class="text-xs text-gray-500 mt-1">Leave Date: <strong>' + toDisplayDate(leaveDate) + '</strong></p>'
         + '<p class="text-xs text-gray-500">Applied On: ' + toDisplayDate(appliedDate) + '</p>'
-        + (l.reason ? '<p class="text-xs text-gray-400 mt-1">Reason: ' + l.reason + '</p>' : '')
+        + (l.reason ? '<p class="text-xs text-blue-600 mt-1">Reason: ' + l.reason + '</p>' : '')
         + '</div><span class="text-xs px-2.5 py-1 rounded-full font-medium bg-yellow-100 text-yellow-700">⏳ Pending</span></div>'
         + '<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100">'
+        + (hasDocAppr ? '<button onclick="viewLeaveDoc(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 font-medium">📄 Document</button>' : '')
         + '<button onclick="approveLeave(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-green-100 text-green-700 rounded-full hover:bg-green-200 font-medium">Approve</button>'
         + '<button onclick="rejectLeave(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-red-100 text-red-700 rounded-full hover:bg-red-200 font-medium">Reject</button>'
         + '</div></div>'
@@ -2042,6 +1976,7 @@ window.switchEmpApprovalTab = function (tab) {
         + (l.cancellation_reason || l.cancellationReason ? '<p class="text-xs text-red-400 mt-1">Cancellation Reason: ' + (l.cancellation_reason || l.cancellationReason) + '</p>' : '')
         + '</div></div>'
         + '<div class="flex gap-2 mt-3 pt-3 border-t border-gray-100">'
+        + (hasDocAppr ? '<button onclick="viewLeaveDoc(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 font-medium">📄 Document</button>' : '')
         + '<button onclick="approveCancellation(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-green-100 text-green-700 rounded-full hover:bg-green-200 font-medium">Approve Cancellation</button>'
         + '<button onclick="rejectCancellation(\'' + id + '\')" class="text-xs px-4 py-1.5 bg-red-100 text-red-700 rounded-full hover:bg-red-200 font-medium">Reject</button>'
         + '</div></div>'
@@ -2159,6 +2094,92 @@ window.empHistPrevPage = function () {
 window.empHistNextPage = function () {
   const total = ((window._empApprovalData || {}).history || []).length
   if ((_empHistPage + 1) * EMP_HIST_PAGE_SIZE < total) { _empHistPage++; renderEmpHistory(((window._empApprovalData || {}).history || [])) }
+}
+
+// --- HR leave history pagination (module-level, matches employee pattern) ---
+let _hrLeavePage = 0
+const HR_LEAVE_PAGE_SIZE = 10
+let _hrLeaveData = []
+
+function renderHrLeaveHistory(data) {
+  _hrLeaveData = data || []
+  const leaves = _hrLeaveData
+  const q = (document.getElementById('hrLeaveSearch')?.value || '').toLowerCase()
+  const typeFilter = (document.getElementById('hrLeaveTypeFilter')?.value || '').toLowerCase()
+  const statusFilter = (document.getElementById('hrLeaveStatusFilter')?.value || '').toLowerCase()
+  const monthF = document.getElementById('hrLeaveMonthFilter')?.value || ''
+  const yearF = document.getElementById('hrLeaveYearFilter')?.value || ''
+  const filtered = leaves.filter(l => {
+    if (!q && !typeFilter && !statusFilter && !monthF && !yearF) return true
+    const leaveDate = (l.startDate || l.start_date || '').toLowerCase()
+    const lid = (l.id || '').toLowerCase()
+    const type = (l.type || '').toLowerCase()
+    const status = (l.status || '').toLowerCase()
+    const matchQ = !q || lid.includes(q) || leaveDate.includes(q)
+    const matchType = !typeFilter || type === typeFilter
+    const matchStatus = !statusFilter || status === statusFilter
+    const p = getLeaveDateParts(l)
+    const matchMonth = !monthF || p.month === parseInt(monthF)
+    const matchYear = !yearF || p.year === parseInt(yearF)
+    return matchQ && matchType && matchStatus && matchMonth && matchYear
+  })
+  const sorted = [...filtered].sort((a, b) => ((b.applied_on || '') > (a.applied_on || '') ? 1 : -1))
+  const totalPages = Math.ceil(sorted.length / HR_LEAVE_PAGE_SIZE)
+  if (_hrLeavePage >= totalPages) _hrLeavePage = Math.max(0, totalPages - 1)
+  if (_hrLeavePage < 0) _hrLeavePage = 0
+  const start = _hrLeavePage * HR_LEAVE_PAGE_SIZE
+  const pageItems = sorted.slice(start, start + HR_LEAVE_PAGE_SIZE)
+  const tb = document.getElementById('empLeaveHistoryBody')
+  const empEmpty = document.getElementById('empLeaveHistoryEmpty')
+  const pagination = document.getElementById('hrLeavePagination')
+  if (pageItems.length === 0) {
+    tb.innerHTML = ''
+    if (empEmpty) empEmpty.classList.remove('hidden')
+    if (pagination) pagination.classList.add('hidden')
+  } else {
+    if (empEmpty) empEmpty.classList.add('hidden')
+    tb.innerHTML = pageItems.map(l => {
+      const status = (l.status || l.Status || '').toLowerCase()
+      const isApproved = status === 'approved' || status === 'auto-approved'
+      const isCancellationReq = status === 'cancellation_requested'
+      const isRejected = status === 'rejected'
+      const isPending = status === 'pending'
+      let statLabel, statColor, statIcon
+      if (isPending) { statLabel = 'Pending'; statColor = 'bg-yellow-100 text-yellow-700'; statIcon = '⏳' }
+      else if (isApproved) { statLabel = 'Approved'; statColor = 'bg-green-100 text-green-700'; statIcon = '✅' }
+      else if (isCancellationReq) { statLabel = 'Cancellation Pending'; statColor = 'bg-blue-100 text-blue-700'; statIcon = '🔶' }
+      else if (isRejected) { statLabel = 'Rejected'; statColor = 'bg-red-100 text-red-700'; statIcon = '❌' }
+      else { statLabel = status; statColor = 'bg-gray-100 text-gray-600'; statIcon = '📋' }
+      const hasDoc = l.document || l.attachment
+      const appliedOn = l.applied_on || ''
+      const appliedDate = appliedOn.split(' ')[0] || appliedOn
+      const appliedTime = appliedOn.split(' ')[1] || ''
+      const cancelTitle = isCancellationReq ? (l.cancellation_reason||'').replace(/"/g,'&quot;') : ''
+      const rejectTitle = isRejected ? (l.rejection_reason||'').replace(/"/g,'&quot;') : ''
+      return `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="px-3 py-2 font-mono text-xs text-gray-600">${l.id}</td><td class="px-3 py-2 text-sm whitespace-nowrap">${toDisplayDate(appliedDate)}<br><span class="text-xs text-gray-400">${appliedTime}</span></td><td class="px-3 py-2 text-sm capitalize">${l.type||'Leave'}</td><td class="px-3 py-2 text-sm">${toDisplayDate(l.startDate||l.start_date)}</td><td class="px-3 py-2 text-sm text-gray-500 max-w-[100px] truncate" title="${(l.reason||'').replace(/"/g,'&quot;')}">${l.reason||'—'}</td><td class="px-3 py-2"><span class="text-xs px-2 py-0.5 rounded-full font-medium ${statColor}"${cancelTitle ? ` title="${cancelTitle}"` : rejectTitle ? ` title="${rejectTitle}"` : ''}>${statIcon} ${statLabel}</span></td><td class="px-3 py-2 text-xs">${hasDoc ? `<button onclick="viewLeaveDoc('${l.id}')" class="text-blue-600 hover:text-blue-800">📄 View</button>` : '—'}</td></tr>`
+    }).join('')
+    if (pagination) {
+      if (totalPages > 1) {
+        pagination.classList.remove('hidden')
+        pagination.innerHTML = '<button onclick="window.hrLeavePrevPage()" class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition"' + (_hrLeavePage <= 0 ? ' disabled style="opacity:0.4;cursor:not-allowed"' : '') + '>◀ Back 10</button><span class="text-sm text-gray-500">Page ' + (_hrLeavePage + 1) + ' of ' + totalPages + ' (' + sorted.length + ' total)</span><button onclick="window.hrLeaveNextPage()" class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition"' + (_hrLeavePage >= totalPages - 1 ? ' disabled style="opacity:0.4;cursor:not-allowed"' : '') + '>Next 10 ▶</button>'
+      } else {
+        pagination.classList.add('hidden')
+      }
+    }
+  }
+}
+
+window.applyHrLeaveFilter = function () {
+  _hrLeavePage = 0
+  renderHrLeaveHistory(_hrLeaveData)
+}
+
+window.hrLeavePrevPage = function () {
+  if (_hrLeavePage > 0) { _hrLeavePage--; renderHrLeaveHistory(_hrLeaveData) }
+}
+window.hrLeaveNextPage = function () {
+  const total = (_hrLeaveData || []).length
+  if ((_hrLeavePage + 1) * HR_LEAVE_PAGE_SIZE < total) { _hrLeavePage++; renderHrLeaveHistory(_hrLeaveData) }
 }
 
 window.switchMgrTab = function (tab) {
@@ -2324,7 +2345,7 @@ window.editTagMgr = function (empId, currentTag) {
   const div = document.getElementById('mgrTagInput' + empId)
   if (!div.classList.contains('hidden')) { div.classList.add('hidden'); return }
   div.classList.remove('hidden')
-  div.innerHTML = '<input type="text" id="mgrTagField' + empId + '" placeholder="Enter project name..." class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" value="' + currentTag + '"> <button onclick="saveTagMgr(\'' + empId + '\')" class="px-2 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">Tag</button>'
+  div.innerHTML = '<input type="text" id="mgrTagField' + empId + '" placeholder="Enter project name..." class="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" value="' + currentTag + '"><button onclick="saveTagMgr(\'' + empId + '\')" class="w-full mt-1 px-2 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700">Tag</button>'
   document.getElementById('mgrTagField' + empId).focus()
 }
 

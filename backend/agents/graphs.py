@@ -1,10 +1,10 @@
-from typing import TypedDict, List, Optional, Any
+from typing import TypedDict, Optional
 from langgraph.graph import StateGraph, END, START
-from agents.supervisor import classify_intent, call_agent_with_tools, TOOL_SCHEMAS
+from agents.supervisor import classify_intent, call_agent_with_tools
 
 
 class AgentState(TypedDict):
-    messages: List[dict]
+    messages: list
     user: dict
     agent_response: Optional[str]
     next: Optional[str]
@@ -108,7 +108,6 @@ def make_supervisor_node(agents):
         text = last_msg.get("content", "")
         if isinstance(text, list):
             text = text[0].get("text", "") if text else ""
-        db = config["configurable"].get("db")
         agent_name = classify_intent(text, state["user"], agents)
         return {"next": agent_name}
     return supervisor_node
@@ -124,8 +123,7 @@ def make_agent_node(agent_def):
         text = last_msg.get("content", "")
         if isinstance(text, list):
             text = text[0].get("text", "") if text else ""
-        db = config["configurable"].get("db")
-        response = call_agent_with_tools(agent_def["prompt"], text, state["user"], db, TOOL_SCHEMAS)
+        response = call_agent_with_tools(agent_def["prompt"], text, state["user"])
         return {"agent_response": response, "active_agent": agent_def["name"]}
     return agent_node
 

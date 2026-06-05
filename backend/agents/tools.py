@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from database import Employee, LeaveRecord, Notification
 from datetime import datetime
+from langchain_core.tools import tool
 
 
 def months_since(doj_str):
@@ -645,6 +646,7 @@ def get_manager_info(db: Session, employee_id: str):
     return {"id": mgr.id, "name": mgr.name, "email": mgr.email}
 
 
+@tool(description="Get company leave policy with rules for each leave type.")
 def get_leave_policy():
     return {
         "casual": "Max 24/year, 2/month credited from DOJ (carried forward). First 2 requests/month → auto-approved (max 2 days at a time). 3rd+ request/month or >2 days at once → manager approval. No negative balance.",
@@ -659,33 +661,197 @@ def get_leave_policy():
     }
 
 
-TOOL_MAP = {
-    "get_leave_balance": lambda db, args: get_leave_balance(db, args["employee_id"]),
-    "get_leave_history": lambda db, args: get_leave_history(db, args["employee_id"], args.get("limit", 200)),
-    "get_upcoming_leaves": lambda db, args: get_upcoming_leaves(db, args["employee_id"]),
-    "apply_leave": lambda db, args: apply_leave(db, args["employee_id"], args["type"], args["start_date"], args["end_date"], args.get("reason", "")),
-    "cancel_leave": lambda db, args: cancel_leave(db, args["leave_id"], args.get("reason", "")),
-    "get_pending_requests": lambda db, args: get_pending_requests(db, args["manager_id"]),
-    "approve_leave": lambda db, args: approve_leave(db, args["leave_id"]),
-    "reject_leave": lambda db, args: reject_leave(db, args["leave_id"], args.get("reason", "No reason provided")),
-    "get_cancellation_requests": lambda db, args: get_cancellation_requests(db, args["manager_id"]),
-    "approve_cancellation": lambda db, args: approve_cancellation(db, args["leave_id"]),
-    "reject_cancellation": lambda db, args: reject_cancellation(db, args["leave_id"]),
-    "check_team_availability": lambda db, args: check_team_availability(db, args["manager_id"], args["date"]),
-    "get_leave_policy": lambda db, args: get_leave_policy(),
-    "get_team_leave_stats": lambda db, args: get_team_leave_stats(db, args["manager_id"], args.get("period", "all")),
-    "get_employee_leave_detail": lambda db, args: get_employee_by_id(db, args["employee_id"]),
-    "get_all_employees": lambda db, args: get_all_employees(db),
-    "get_employee_by_id": lambda db, args: get_employee_by_id(db, args["employee_id"]),
-    "get_hr_contact": lambda db, args: get_hr_contact(db),
-    "get_manager_info": lambda db, args: get_manager_info(db, args["employee_id"]),
-    "search_policy": lambda db, args: search_policy(args["query"]),
-    "rag_query": lambda db, args: rag_query(args["question"]),
-    "get_conversation_history": lambda db, args: get_conversation_history(args["user_id"]),
-    "get_leave_by_id": lambda db, args: get_leave_by_id(db, args["leave_id"]),
-}
+@tool("get_leave_balance", description="Get employee leave balance showing remaining and limit for each leave type.")
+def get_leave_balance_wrapper(employee_id: str) -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_leave_balance(db, employee_id)
+    finally:
+        db.close()
 
 
+@tool("get_leave_history", description="Get last 200 leave records for an employee.")
+def get_leave_history_wrapper(employee_id: str, limit: int = 200) -> list:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_leave_history(db, employee_id, limit)
+    finally:
+        db.close()
+
+
+@tool("get_upcoming_leaves", description="Get upcoming approved/pending leaves for an employee.")
+def get_upcoming_leaves_wrapper(employee_id: str) -> list:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_upcoming_leaves(db, employee_id)
+    finally:
+        db.close()
+
+
+@tool("apply_leave", description="Apply for leave. Dates must be in YYYY-MM-DD format.")
+def apply_leave_wrapper(employee_id: str, leave_type: str, start_date: str, end_date: str, reason: str = "") -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return apply_leave(db, employee_id, leave_type, start_date, end_date, reason)
+    finally:
+        db.close()
+
+
+@tool("cancel_leave", description="Cancel a leave. Reason is optional for pending leaves.")
+def cancel_leave_wrapper(leave_id: str, reason: str = "") -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return cancel_leave(db, leave_id, reason)
+    finally:
+        db.close()
+
+
+@tool("get_pending_requests", description="Get pending leave requests for a manager.")
+def get_pending_requests_wrapper(manager_id: str) -> list:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_pending_requests(db, manager_id)
+    finally:
+        db.close()
+
+
+@tool("approve_leave", description="Approve a pending leave request.")
+def approve_leave_wrapper(leave_id: str) -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return approve_leave(db, leave_id)
+    finally:
+        db.close()
+
+
+@tool("reject_leave", description="Reject a pending leave request with a reason.")
+def reject_leave_wrapper(leave_id: str, reason: str) -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return reject_leave(db, leave_id, reason)
+    finally:
+        db.close()
+
+
+@tool("get_cancellation_requests", description="Get cancellation requests for a manager.")
+def get_cancellation_requests_wrapper(manager_id: str) -> list:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_cancellation_requests(db, manager_id)
+    finally:
+        db.close()
+
+
+@tool("approve_cancellation", description="Approve a cancellation request, removing the leave from history.")
+def approve_cancellation_wrapper(leave_id: str) -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return approve_cancellation(db, leave_id)
+    finally:
+        db.close()
+
+
+@tool("reject_cancellation", description="Reject a cancellation request, keeping the leave as approved.")
+def reject_cancellation_wrapper(leave_id: str, reason: str = "") -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return reject_cancellation(db, leave_id, reason)
+    finally:
+        db.close()
+
+
+@tool("check_team_availability", description="Check how many team members are available on a given date.")
+def check_team_availability_wrapper(manager_id: str, date: str) -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return check_team_availability(db, manager_id, date)
+    finally:
+        db.close()
+
+
+@tool("get_team_leave_stats", description="Get team leave statistics for a period.")
+def get_team_leave_stats_wrapper(manager_id: str, period: str = "all") -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_team_leave_stats(db, manager_id, period)
+    finally:
+        db.close()
+
+
+@tool("get_employee_leave_detail", description="Get detailed employee info by ID including leave balance.")
+def get_employee_leave_detail_wrapper(employee_id: str) -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_employee_by_id(db, employee_id)
+    finally:
+        db.close()
+
+
+@tool("get_all_employees", description="Get list of all employees.")
+def get_all_employees_wrapper() -> list:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_all_employees(db)
+    finally:
+        db.close()
+
+
+@tool("get_employee_by_id", description="Get detailed employee info by ID.")
+def get_employee_by_id_wrapper(employee_id: str) -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_employee_by_id(db, employee_id)
+    finally:
+        db.close()
+
+
+@tool("get_hr_contact", description="Get HR contact information.")
+def get_hr_contact_wrapper() -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_hr_contact(db)
+    finally:
+        db.close()
+
+
+@tool("get_manager_info", description="Get manager info for an employee.")
+def get_manager_info_wrapper(employee_id: str) -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_manager_info(db, employee_id)
+    finally:
+        db.close()
+
+
+@tool("get_leave_by_id", description="Get full details of a specific leave request by its ID.")
+def get_leave_by_id_wrapper(leave_id: str) -> dict:
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        return get_leave_by_id(db, leave_id)
+    finally:
+        db.close()
+
+
+@tool(description="Semantic search company leave policies using vector embeddings.")
 def search_policy(query: str):
     from ai_engine.vector_store import seed_policy_vector_store
     store = seed_policy_vector_store()
@@ -698,6 +864,7 @@ def search_policy(query: str):
     }
 
 
+@tool(description="Answer questions using RAG on the policy knowledge base.")
 def rag_query(question: str):
     from ai_engine.rag import RagPipeline
     rag = RagPipeline()
@@ -708,7 +875,19 @@ def rag_query(question: str):
         return {"answer": f"RAG engine error: {str(e)}. Try again later.", "sources": []}
 
 
+@tool(description="Get recent conversation history for a user.")
 def get_conversation_history(user_id: str):
     from ai_engine.agent_memory import conversation_memory
     history = conversation_memory.get(user_id)
     return {"history": [{"role": m["role"], "content": m["content"][:200]} for m in history[-10:]]}
+
+
+TOOLS = [
+    get_leave_balance_wrapper, get_leave_history_wrapper, get_upcoming_leaves_wrapper,
+    apply_leave_wrapper, cancel_leave_wrapper, get_pending_requests_wrapper,
+    approve_leave_wrapper, reject_leave_wrapper, get_cancellation_requests_wrapper,
+    approve_cancellation_wrapper, reject_cancellation_wrapper, check_team_availability_wrapper,
+    get_leave_policy, get_team_leave_stats_wrapper, get_employee_leave_detail_wrapper,
+    get_all_employees_wrapper, get_employee_by_id_wrapper, get_hr_contact_wrapper, get_manager_info_wrapper,
+    search_policy, rag_query, get_conversation_history, get_leave_by_id_wrapper,
+]

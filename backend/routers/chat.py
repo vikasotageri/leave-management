@@ -1,9 +1,6 @@
 import os
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 from pydantic import BaseModel
-from database import get_db
-from auth import get_current_user, Employee
 from agents.graphs import build_employee_graph, build_manager_graph, build_hr_graph
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -22,7 +19,7 @@ class ChatRequest(BaseModel):
 
 
 @router.post("")
-async def chat(req: ChatRequest, db: Session = Depends(get_db)):
+async def chat(req: ChatRequest):
     user = {"id": req.user_id, "name": req.user_name, "role": req.user_role}
 
     # Restore conversation history from client if server memory is empty
@@ -47,7 +44,6 @@ async def chat(req: ChatRequest, db: Session = Depends(get_db)):
 
         result = await graph.ainvoke(
             {"messages": [{"role": "user", "content": req.message}], "user": user, "agent_response": None, "next": None, "active_agent": None},
-            {"configurable": {"db": db}},
         )
 
         return {"response": result.get("agent_response", "I processed your request.")}
