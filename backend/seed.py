@@ -1,86 +1,69 @@
-from database import SessionLocal, Employee, Holiday, generate_id
+"""
+================================================================================
+ LEAVE FLOW — Database Seeder
+================================================================================
+
+ PURPOSE:
+  Seeds the database with initial data on first application startup.
+  Creates the default HR and Manager accounts if they don't exist.
+
+ CALLED BY:
+  - backend/main.py line 25: seed_database() after table creation
+
+ WHAT IT CREATES:
+  - HR001 (hr@company.com / pass123) — Role: hr
+  - MGR001 (manager@company.com / pass123) — Role: manager
+
+ DESIGN NOTES:
+  - Idempotent: checks if accounts exist before creating them
+  - Uses get_or_create pattern to avoid duplicate seeding on restart
+  - Plain password is stored alongside hashed for credential display to admin
+================================================================================
+"""
+
+from database import SessionLocal, Employee
 from auth import hash_password
 
 
 def seed_database():
+    """
+    Main seeder function. Called once at app startup.
+    Creates default HR and Manager accounts.
+    Skips if accounts already exist (checked by email).
+    """
     db = SessionLocal()
     try:
-        existing = db.query(Employee).count()
-        if existing > 0:
-            return
+        # ---- Seed HR Account ----
+        hr = db.query(Employee).filter(Employee.email == "hr@company.com").first()
+        if not hr:
+            hr = Employee(
+                id="HR001",
+                name="HR Admin",
+                email="hr@company.com",
+                password=hash_password("pass123"),
+                plain_password="pass123",
+                role="hr",
+                phone="",
+                designation="Human Resources",
+            )
+            db.add(hr)
+            print("✅ Seeded HR001 (hr@company.com / pass123)")
 
-        hr = Employee(
-            id="HR001",
-            name="Vikram Sharma",
-            email="hr@company.com",
-            password=hash_password("pass123"),
-            role="hr",
-            phone="+91-9876543210",
-            dob="1985-03-15",
-            doj="2023-01-01",
-            address="100 Corporate Blvd, HQ",
-            nationality="Indian",
-            designation="Senior HR",
-            project_tag=None,
-            manager_id=None,
-            gender="Female",
-            leave_balance={
-                "sick": {"taken": 0, "limit": 12},
-                "casual": {"taken": 0, "limit": 24},
-                "business": {"taken": 0, "limit": 20},
-                "emergency": {"taken": 0, "limit": 10},
-                "family": {"taken": 0, "limit": 10},
-                "paid": {"taken": 0, "limit": 100},
-                "unpaid": {"taken": 0, "limit": 999},
-                "totalAccrued": 0,
-                "totalTaken": 0,
-            },
-        )
-        db.add(hr)
-
-        mgr = Employee(
-            id="MGR001",
-            name="Akshata Patil",
-            email="manager@company.com",
-            password=hash_password("pass123"),
-            role="manager",
-            phone="+91-9876543211",
-            dob="1988-07-22",
-            doj="2023-06-01",
-            address="200 Executive Suite, Floor 3",
-            nationality="Indian",
-            designation="Senior Manager",
-            project_tag=None,
-            manager_id=None,
-            gender="Male",
-            leave_balance={
-                "sick": {"taken": 0, "limit": 12},
-                "casual": {"taken": 0, "limit": 24},
-                "business": {"taken": 0, "limit": 20},
-                "emergency": {"taken": 0, "limit": 10},
-                "family": {"taken": 0, "limit": 10},
-                "paid": {"taken": 0, "limit": 100},
-                "unpaid": {"taken": 0, "limit": 999},
-                "totalAccrued": 0,
-                "totalTaken": 0,
-            },
-        )
-        db.add(mgr)
-
-        holidays_data = [
-            ("2026-01-01", "New Year"),
-            ("2026-01-26", "Republic Day"),
-            ("2026-03-25", "Holi"),
-            ("2026-04-14", "Ambedkar Jayanti"),
-            ("2026-05-01", "Labour Day"),
-            ("2026-08-15", "Independence Day"),
-            ("2026-10-02", "Gandhi Jayanti"),
-            ("2026-10-22", "Diwali"),
-            ("2026-11-14", "Children's Day"),
-            ("2026-12-25", "Christmas"),
-        ]
-        for i, (date, name) in enumerate(holidays_data, 1):
-            db.add(Holiday(id=f"H{i:03d}", date=date, name=name))
+        # ---- Seed Manager Account ----
+        mgr = db.query(Employee).filter(Employee.email == "manager@company.com").first()
+        if not mgr:
+            mgr = Employee(
+                id="MGR001",
+                name="Team Manager",
+                email="manager@company.com",
+                password=hash_password("pass123"),
+                plain_password="pass123",
+                role="manager",
+                phone="",
+                designation="Senior Manager",
+            )
+            db.add(mgr)
+            print("✅ Seeded MGR001 (manager@company.com / pass123)")
 
         db.commit()
     finally:

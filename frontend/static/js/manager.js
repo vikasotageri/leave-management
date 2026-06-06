@@ -190,6 +190,10 @@ async function loadEmpApprovals(empId) {
 
     renderEmpLeaveCards(pastEl, past, 'past', empId)
     renderEmpLeaveCards(upcomingEl, upcoming, 'upcoming', empId)
+    const pastCountEl = document.getElementById('empPastCount')
+    const upcomingCountEl = document.getElementById('empUpcomingCount')
+    if (pastCountEl) pastCountEl.textContent = String(past.length)
+    if (upcomingCountEl) upcomingCountEl.textContent = String(upcoming.length)
 
     const pending = leaves.filter(l => (l.status || '') === 'pending')
     const cancellations = leaves.filter(l => (l.status || '') === 'cancellation_requested')
@@ -610,14 +614,13 @@ window.loadTeamApprovalsList = async function () {
       return `<div onclick="openEmployeeView('${e.id}')" class="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-blue-200 cursor-pointer transition">
         <div class="flex items-center justify-between mb-1">
           <p class="font-semibold text-sm text-gray-800">${e.name}</p>
-          <div class="flex items-center gap-2">${badgeHtml}</div>
+          <div class="flex items-center gap-2">${badgeHtml}${total > 0 ? `<span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">Total: ${total}</span>` : ''}</div>
         </div>
         <p class="text-xs text-gray-500">${e.email || '—'}${e.projectTag ? ` <span class="inline-block text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">🏷️ ${e.projectTag}</span>` : ''}</p>
         <p class="text-xs text-gray-500 mt-1">ID: ${e.id}</p>
         <p class="text-xs mt-0.5"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium ${dColor}">${e.designation||'—'}</span></p>
         <p class="text-xs text-gray-500 mt-1">DOJ: ${toDisplayDate(e.doj)}</p>
         <p class="text-xs text-gray-500">⚤ ${e.gender || '—'}</p>
-        ${total > 0 ? `<p class="text-xs font-semibold text-gray-600 mt-1">Total: ${total} request${total > 1 ? 's' : ''}</p>` : ''}
       </div>`
     }).join('')
   } catch (e) {
@@ -720,4 +723,3 @@ window.untagEmployeeMgr = async function (empId) {
     loadManagerDashboard()
   } catch (e) { alert('Error: ' + e.message) }
 }
-

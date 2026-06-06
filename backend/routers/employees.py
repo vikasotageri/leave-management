@@ -1,3 +1,47 @@
+"""
+================================================================================
+ LEAVE FLOW — Employees Router (CRUD + Documents + Tags)
+================================================================================
+
+ PURPOSE:
+  Handles all employee management HTTP endpoints.
+  Supports full CRUD for HR, document upload/download, project tag management,
+  leave balance queries, and leave history retrieval.
+
+ CALLED BY:
+  - frontend/static/js/hr.js: loadEmployeeList(), createEmployee(), etc.
+  - frontend/static/js/employee.js: leave balance/history display
+  - frontend/static/js/manager.js: team member details
+
+ ROUTES:
+  GET    /api/employees                — List all employees (HR/Manager only)
+  GET    /api/employees/all            — List ALL employees (including managers/HR)
+  GET    /api/employees/{id}           — Get single employee details
+  POST   /api/employees                — Create new employee (HR only)
+  DELETE /api/employees/{id}           — Delete employee (HR only)
+  GET    /api/employees/{id}/balance   — Get leave balance
+  GET    /api/employees/{id}/leaves    — Get leave history
+  GET    /api/employees/{id}/upcoming  — Get upcoming leaves
+  GET    /api/employees/{id}/document  — Download employee document
+  PUT    /api/employees/{id}/document  — Upload employee document (HR only)
+  PUT    /api/employees/{id}/project-tag — Update project tag (HR/Manager)
+
+ DESIGN:
+  - HR-only endpoints protected by role checks
+  - Employee IDs auto-generated (EMP001, EMP002, ...)
+  - Random 8-char password generated on creation
+  - Email sent with credentials via threading (non-blocking)
+  - Age validation: minimum 18 years at DOJ and current date
+  - Document stored as base64 data URL in the database
+
+ LANDING PAGE:
+  - Created by HR Admin — fills out a multi-field form
+  - Fields: firstName, middleName, lastName, email, phone,
+    countryCode, dob, doj, address, nationality, designation,
+    gender, projectTag, managerId, document
+================================================================================
+"""
+
 import os
 import json
 import secrets
@@ -16,6 +60,7 @@ router = APIRouter(prefix="/api/employees", tags=["employees"])
 
 
 def generate_random_password(length=8):
+    """Generate a random alphanumeric password of given length."""
     chars = string.ascii_letters + string.digits
     return "".join(secrets.choice(chars) for _ in range(length))
 
@@ -57,6 +102,10 @@ class CreateEmployeeRequest(BaseModel):
 
 @router.get("")
 def list_employees(db: Session = Depends(get_db), user: Employee = Depends(get_current_user)):
+    """
+    List all employees (role='employee') with computed leave balances.
+    Access: HR or Manager only.
+    """
     if user.role not in ("hr", "manager"):
         raise HTTPException(status_code=403, detail="Not authorized")
     from ai.agents.tools import get_leave_balance
@@ -75,6 +124,10 @@ def list_employees(db: Session = Depends(get_db), user: Employee = Depends(get_c
 
 @router.get("/all")
 def all_employees(db: Session = Depends(get_db)):
+    """
+    List ALL employees (including managers and HR).
+    Used by chat agent for global employee queries.
+    """
     emps = db.query(Employee).all()
     return [
         {
@@ -90,6 +143,10 @@ def all_employees(db: Session = Depends(get_db)):
 
 @router.get("/{employee_id}")
 def get_employee(employee_id: str, db: Session = Depends(get_db)):
+    """
+    Get full employee details including computed leave balance and document.
+    Used by HR dashboard, manager team view, and chat agent.
+    """
     emp = db.query(Employee).filter(Employee.id == employee_id).first()
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
@@ -108,6 +165,20 @@ def get_employee(employee_id: str, db: Session = Depends(get_db)):
 
 @router.post("")
 def create_employee(req: CreateEmployeeRequest, db: Session = Depends(get_db), user: Employee = Depends(get_current_user)):
+    """
+    Create a new employee (HR only).
+
+    FLOW:
+      1. Check authorization (HR only)
+      2. Validate email/phone uniqueness
+      3. Validate minimum age (18 years)
+      4. Generate EMP ID and random password
+      5. Calculate accrued casual leave based on DOJ
+      6. Create Employee record with full details
+      7. Create notifications for employee, HR, and manager
+      8. Send welcome email in background thread
+      9. Return employee data with credentials
+    """
     if user.role != "hr":
         raise HTTPException(status_code=403, detail="Only HR can create employees")
 
@@ -264,6 +335,10 @@ def create_employee(req: CreateEmployeeRequest, db: Session = Depends(get_db), u
 
 @router.delete("/{employee_id}")
 def delete_employee(employee_id: str, db: Session = Depends(get_db), user: Employee = Depends(get_current_user)):
+    """
+    Delete an employee and all associated records (HR only).
+    Cascading deletes: LeaveRecord, Notification.
+    """
     if user.role != "hr":
         raise HTTPException(status_code=403, detail="Only HR can delete employees")
 
@@ -283,16 +358,19 @@ def delete_employee(employee_id: str, db: Session = Depends(get_db), user: Emplo
 
 @router.get("/{employee_id}/balance")
 def employee_balance(employee_id: str, db: Session = Depends(get_db)):
+    """Get computed leave balance for an employee."""
     return get_leave_balance(db, employee_id)
 
 
 @router.get("/{employee_id}/leaves")
 def employee_leaves(employee_id: str, limit: int = 10, db: Session = Depends(get_db)):
+    """Get leave history for an employee (latest first, limited)."""
     return get_leave_history(db, employee_id, limit)
 
 
 @router.get("/{employee_id}/upcoming")
 def employee_upcoming(employee_id: str, db: Session = Depends(get_db)):
+    """Get upcoming approved leaves for an employee."""
     from ai.agents.tools import get_upcoming_leaves as gul
     return gul(db, employee_id)
 
@@ -305,6 +383,10 @@ class UpdateDocumentRequest(BaseModel):
 
 @router.get("/{employee_id}/document")
 def get_document(employee_id: str, db: Session = Depends(get_db)):
+    """
+    Download employee document.
+    Decodes base64 data URL and returns raw file with correct MIME type.
+    """
     emp = db.query(Employee).filter(Employee.id == employee_id).first()
     if not emp or not emp.document:
         raise HTTPException(status_code=404, detail="No document found")
@@ -319,6 +401,10 @@ def get_document(employee_id: str, db: Session = Depends(get_db)):
 
 @router.put("/{employee_id}/document")
 def update_document(employee_id: str, req: UpdateDocumentRequest, db: Session = Depends(get_db), user: Employee = Depends(get_current_user)):
+    """
+    Upload/update employee document (HR only).
+    Document is stored as base64 data URL string in the database.
+    """
     if user.role not in ("hr",):
         raise HTTPException(status_code=403, detail="Only HR can update documents")
     emp = db.query(Employee).filter(Employee.id == employee_id).first()
@@ -336,6 +422,10 @@ class ProjectTagRequest(BaseModel):
 
 @router.put("/{employee_id}/project-tag")
 def update_project_tag(employee_id: str, req: ProjectTagRequest, db: Session = Depends(get_db), user: Employee = Depends(get_current_user)):
+    """
+    Update employee's project tag (HR/Manager only).
+    Tagged employees require manager approval for ALL leave types.
+    """
     if user.role not in ("hr", "manager"):
         raise HTTPException(status_code=403, detail="Only HR or Manager can update project tag")
     emp = db.query(Employee).filter(Employee.id == employee_id).first()

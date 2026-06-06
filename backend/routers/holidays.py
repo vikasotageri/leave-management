@@ -1,3 +1,31 @@
+"""
+================================================================================
+ LEAVE FLOW — Holidays Router (CRUD for Company Holidays)
+================================================================================
+
+ PURPOSE:
+  Manages company holidays (days when leave is not counted against balance).
+  Holidays are used by the employee dashboard calendar to mark non-working days
+  and by the leave application logic to exclude holidays from leave day counts.
+
+ CALLED BY:
+  - frontend/static/js/employee.js: loadHolidays() → GET /api/holidays
+      → Calendar displays holidays with special styling
+  - frontend/static/js/hr.js: holiday management UI
+
+ ROUTES:
+  GET    /api/holidays          — List all holidays (sorted by date)
+  POST   /api/holidays          — Create a new holiday
+  DELETE /api/holidays/{id}    — Delete a holiday
+
+ DATA MODEL (database.py):
+  Holiday(id, date, name)
+  - id:   Auto-generated ("H001", "H002", ...)
+  - date: Date string (YYYY-MM-DD)
+  - name: Holiday name (e.g., "Diwali", "Christmas")
+================================================================================
+"""
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -13,12 +41,14 @@ class HolidayCreate(BaseModel):
 
 @router.get("")
 def list_holidays(db: Session = Depends(get_db)):
+    """List all holidays sorted by date (ascending)."""
     holidays = db.query(Holiday).order_by(Holiday.date).all()
     return [{"id": h.id, "date": h.date, "name": h.name} for h in holidays]
 
 
 @router.post("")
 def create_holiday(req: HolidayCreate, db: Session = Depends(get_db)):
+    """Create a new holiday. Rejects duplicate dates."""
     existing = db.query(Holiday).filter(Holiday.date == req.date).first()
     if existing:
         raise HTTPException(status_code=400, detail="Holiday already exists for this date")
@@ -30,6 +60,7 @@ def create_holiday(req: HolidayCreate, db: Session = Depends(get_db)):
 
 @router.delete("/{holiday_id}")
 def delete_holiday(holiday_id: str, db: Session = Depends(get_db)):
+    """Delete a holiday by ID."""
     holiday = db.query(Holiday).filter(Holiday.id == holiday_id).first()
     if not holiday:
         raise HTTPException(status_code=404, detail="Holiday not found")

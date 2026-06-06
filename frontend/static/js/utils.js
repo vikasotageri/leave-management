@@ -76,6 +76,7 @@ function getLeaveDateParts(l) {
 window.filterLeaveHistory = function () {
   leavePage = 0
   const q = document.getElementById('leaveHistorySearch')?.value.toLowerCase() || ''
+}
 window.viewDocument=async function(id){
   try{
     const emp=await apiGet('/employees/'+id)
