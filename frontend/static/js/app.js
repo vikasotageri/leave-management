@@ -16,6 +16,24 @@ document.addEventListener('DOMContentLoaded',async function(){
   if(path==='/employee') loadEmployeeDashboard()
   if(path==='/manager'){
     await loadManagerDashboard()
+    // Auto-refresh every 6s — updates whichever view is currently visible
+    let _mgrRefreshing = false
+    setInterval(async () => {
+      if (_mgrRefreshing || window._aiProcessing) return
+      _mgrRefreshing = true
+      try {
+        await loadManagerDashboard()
+        if (_mgrSelectedEmpId) {
+          refreshEmpDetailHeader()
+          loadEmpApprovals(_mgrSelectedEmpId, true).catch(() => {})
+        }
+        const approvalsContent = document.getElementById('mgrApprovalsContent')
+        if (approvalsContent && !approvalsContent.classList.contains('hidden')) {
+          loadTeamApprovalsList().catch(() => {})
+        }
+      } catch (e) { console.error('Auto-refresh error:', e) }
+      _mgrRefreshing = false
+    }, 6000)
     try {
       const raw = sessionStorage.getItem('mgrViewState')
       if (raw) {

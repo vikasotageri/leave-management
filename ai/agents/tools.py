@@ -827,6 +827,18 @@ def get_manager_info(db: Session, employee_id: str):
     return {"id": mgr.id, "name": mgr.name, "email": mgr.email}
 
 
+def get_team_members(db: Session, manager_id: str):
+    """Get all team members reporting to a manager."""
+    members = db.query(Employee).filter(Employee.manager_id == manager_id).all()
+    return [{
+        "id": e.id, "name": e.name, "email": e.email,
+        "role": e.role, "designation": e.designation or "",
+        "gender": e.gender or "", "doj": e.doj or "",
+        "project_tag": e.project_tag,
+        "phone": e.phone or "",
+    } for e in members]
+
+
 # ======================================================================
 # AGENT-LEVEL HELPER FUNCTIONS (shared across supervisor tools)
 # ======================================================================
@@ -1174,13 +1186,11 @@ def ask_leave_assistant(message: str, user_id: str, role: str) -> str:
 
         leave = LeaveRecord(
             employee_id=user_id,
-            leave_type=leave_type,
+            type=leave_type,
             start_date=start_date,
             end_date=end,
-            no_of_days=days,
             reason=reason,
             status=status,
-            is_auto_approved=auto_approved,
         )
         db.add(leave)
         db.flush()
@@ -1189,7 +1199,7 @@ def ask_leave_assistant(message: str, user_id: str, role: str) -> str:
             manager = db.query(Employee).filter(Employee.role == "manager").first()
             if manager:
                 db.add(Notification(
-                    emp_id=manager.id,
+                    user_id=manager.id,
                     message=f"{emp.name} applied for {leave_type} leave ({start_date} to {end})",
                     type="leave_request",
                 ))
@@ -1200,7 +1210,7 @@ def ask_leave_assistant(message: str, user_id: str, role: str) -> str:
             hr = db.query(Employee).filter(Employee.role == "hr").first()
             if hr:
                 db.add(Notification(
-                    emp_id=hr.id,
+                    user_id=hr.id,
                     message=f"{emp.name} applied for {leave_type} leave ({start_date} to {end})",
                     type="leave_request",
                 ))
@@ -1210,8 +1220,8 @@ def ask_leave_assistant(message: str, user_id: str, role: str) -> str:
         db.commit()
 
         if auto_approved:
-            return f"✅ {leave_type.title()} leave from {start_date} to {end} ({days} days) has been auto-approved!\nReason: {reason}"
-        return f"📋 {leave_type.title()} leave from {start_date} to {end} ({days} days) has been submitted for manager approval.\nReason: {reason}\nNote: {status_msg}"
+            return f"{leave_type.title()} leave from {start_date} to {end} ({days} days) has been auto-approved. Reason: {reason}"
+        return f"{leave_type.title()} leave from {start_date} to {end} ({days} days) submitted for manager approval. Reason: {reason}"
     finally:
         db.close()
 
@@ -1325,14 +1335,14 @@ def get_pending_leaves(message: str, user_id: str, role: str) -> str:
         if not records:
             return "No pending leave requests at this time."
 
-        lines = ["📋 Pending Leave Requests:"]
+        lines = ["Pending Leave Requests:"]
         for rec, emp in records:
             lines.append(
-                f"• {emp.name} ({emp.id}): {rec.leave_type.title()} "
+                f"- {emp.name} ({emp.id}): {rec.type.title()} "
                 f"from {rec.start_date} to {rec.end_date} "
-                f"({rec.no_of_days} days) — Reason: {rec.reason}"
+                f"Reason: {rec.reason}"
             )
-        lines.append("\nTo approve: 'approve {employee_id}'")
+        lines.append("To approve: 'approve {employee_id}'")
         lines.append("To reject: 'reject {employee_id} with reason: ...'")
 
         return "\n".join(lines)
@@ -1376,8 +1386,8 @@ def approve_leave_agent(message: str, user_id: str, role: str) -> str:
 
         leave.status = "approved"
         notif = Notification(
-            emp_id=target_id,
-            message=f"Your {leave.leave_type} leave ({leave.start_date} to {leave.end_date}) has been approved.",
+            user_id=target_id,
+            message=f"Your {leave.type} leave ({leave.start_date} to {leave.end_date}) has been approved.",
             type="leave_approved",
         )
         db.add(notif)
@@ -1385,7 +1395,7 @@ def approve_leave_agent(message: str, user_id: str, role: str) -> str:
 
         emp = db.query(Employee).filter(Employee.id == target_id).first()
         emp_name = emp.name if emp else target_id
-        return f"✅ Approved {leave.leave_type} leave for {emp_name} ({leave.start_date} to {leave.end_date})."
+        return f"Approved {leave.type} leave for {emp_name} ({leave.start_date} to {leave.end_date})."
     finally:
         db.close()
 
@@ -1428,8 +1438,8 @@ def reject_leave_agent(message: str, user_id: str, role: str) -> str:
         leave.rejection_reason = reason
 
         notif = Notification(
-            emp_id=target_id,
-            message=f"Your {leave.leave_type} leave ({leave.start_date} to {leave.end_date}) was rejected. Reason: {reason}",
+            user_id=target_id,
+            message=f"Your {leave.type} leave ({leave.start_date} to {leave.end_date}) was rejected. Reason: {reason}",
             type="leave_rejected",
         )
         db.add(notif)
@@ -1437,7 +1447,7 @@ def reject_leave_agent(message: str, user_id: str, role: str) -> str:
 
         emp = db.query(Employee).filter(Employee.id == target_id).first()
         emp_name = emp.name if emp else target_id
-        return f"❌ Rejected {leave.leave_type} leave for {emp_name}. Reason: {reason}"
+        return f"Rejected {leave.type} leave for {emp_name}. Reason: {reason}"
     finally:
         db.close()
 
@@ -1455,22 +1465,15 @@ def get_employee_details(message: str, user_id: str, role: str) -> str:
     if not emp:
         return f"Employee {lookup_id} not found."
 
-    lines = [
-        f"📋 Employee Details: {emp.name}",
-        f"  • ID: {emp.id}",
-        f"  • Email: {emp.email}",
-        f"  • Phone: {emp.phone or 'N/A'}",
-        f"  • Designation: {emp.designation or 'N/A'}",
-        f"  • Role: {emp.role}",
-        f"  • Project Tag: {emp.project_tag or 'Not tagged'}",
-        f"  • Tagged: {'Yes' if emp.project_tag else 'No'}",
-    ]
+    lines = [f"Employee: {emp.name} (ID: {emp.id})"]
+    lines.append(f"Email: {emp.email}, Phone: {emp.phone or 'N/A'}")
+    lines.append(f"Designation: {emp.designation or 'N/A'}, Role: {emp.role}")
+    lines.append(f"Project Tag: {emp.project_tag or 'Not tagged'}")
     if emp.manager_id:
         mgr = get_employee_info(emp.manager_id)
         if mgr:
-            lines.append(f"  • Manager: {mgr.name} ({emp.manager_id})")
-
-    return "\n".join(lines)
+            lines.append(f"Manager: {mgr.name} ({emp.manager_id})")
+    return " | ".join(lines)
 
 
 def general_query(message: str, user_id: str, role: str) -> str:
@@ -1478,13 +1481,13 @@ def general_query(message: str, user_id: str, role: str) -> str:
     response = _get_client().chat.completions.create(
         model=GPT_MODEL,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant. Answer any question briefly and directly in 1-3 lines. You can answer general knowledge, coding, and non-work questions too."},
+            {"role": "system", "content": "You are a helpful assistant. Answer briefly in 1-3 lines. For code: write inline, no markdown fences. NO markdown, NO bullets, NO emoji."},
             {"role": "user", "content": message}
         ],
         temperature=0.2,
         max_tokens=150,
     )
-    return response.choices[0].message.content or "Hello! How can I help you today?"
+    return response.choices[0].message.content or "How can I help you today?"
 
 
 def get_cancellation_status(message: str, user_id: str, role: str) -> str:
@@ -1499,10 +1502,10 @@ def get_cancellation_status(message: str, user_id: str, role: str) -> str:
         if not records:
             return "You have no pending cancellation requests."
 
-        lines = ["📋 Cancellation Requests:"]
+        lines = ["Cancellation Requests:"]
         for rec in records:
             lines.append(
-                f"• {rec.type.title()} ({rec.start_date} to {rec.end_date}): "
+                f" - {rec.type.title()} ({rec.start_date} to {rec.end_date}): "
                 f"Status: {rec.cancellation_status or 'Pending review'}"
             )
         return "\n".join(lines)
@@ -1533,19 +1536,18 @@ def hr_override(message: str, user_id: str, role: str) -> str:
             return f"No pending leave found for {target_id}."
 
         leave.status = "approved" if action == "approve" else "rejected"
-        leave.is_auto_approved = False
 
         emp = db.query(Employee).filter(Employee.id == target_id).first()
         emp_name = emp.name if emp else target_id
 
         notif = Notification(
-            emp_id=target_id,
+            user_id=target_id,
             message=f"HR has {action}d your {leave.type} leave ({leave.start_date} to {leave.end_date}).",
             type=f"hr_{action}d",
         )
         db.add(notif)
         db.commit()
-        return f"🏢 HR override: {action}d leave for {emp_name}."
+        return f"HR override: {action}d leave for {emp_name}."
     finally:
         db.close()
 
@@ -1785,6 +1787,69 @@ def get_hr_contact_wrapper() -> dict:
         db.close()
 
 
+@tool("get_team_members", description="Get all team members reporting to a manager. Returns id, name, email, role, designation, gender, doj, project_tag for each.")
+def get_team_members_wrapper(manager_id: str) -> list:
+    db = SessionLocal()
+    try:
+        return get_team_members(db, manager_id)
+    finally:
+        db.close()
+
+
+@tool("approve_leave_by_employee", description="Approve a pending leave for an employee on a specific date. Provide employee_id (EMPXXX) and date (YYYY-MM-DD). Looks up the leave automatically.")
+def approve_leave_by_employee_wrapper(employee_id: str, date: str) -> dict:
+    db = SessionLocal()
+    try:
+        try:
+            lookup = datetime.strptime(date[:10], "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            try:
+                lookup = datetime.strptime(date[:10], "%d-%m-%Y").strftime("%Y-%m-%d")
+            except ValueError:
+                return {"success": False, "error": f"Invalid date: {date}"}
+        leave = db.query(LeaveRecord).filter(
+            LeaveRecord.employee_id == employee_id,
+            LeaveRecord.start_date == lookup,
+            LeaveRecord.status == "pending",
+        ).first()
+        if not leave:
+            return {"success": False, "error": f"No pending leave found for {employee_id} on {lookup}."}
+        leave.status = "approved"
+        leave.approved_by = CURRENT_AI_CONTEXT.get("user_id", "")
+        leave.notified_manager = True
+        db.commit()
+        return {"success": True, "leave_id": leave.id, "employee_id": employee_id, "date": lookup, "type": leave.type}
+    finally:
+        db.close()
+
+
+@tool("reject_leave_by_employee", description="Reject a pending leave for an employee on a specific date. Provide employee_id (EMPXXX), date (YYYY-MM-DD), and reason. Looks up the leave automatically.")
+def reject_leave_by_employee_wrapper(employee_id: str, date: str, reason: str) -> dict:
+    db = SessionLocal()
+    try:
+        try:
+            lookup = datetime.strptime(date[:10], "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            try:
+                lookup = datetime.strptime(date[:10], "%d-%m-%Y").strftime("%Y-%m-%d")
+            except ValueError:
+                return {"success": False, "error": f"Invalid date: {date}"}
+        leave = db.query(LeaveRecord).filter(
+            LeaveRecord.employee_id == employee_id,
+            LeaveRecord.start_date == lookup,
+            LeaveRecord.status == "pending",
+        ).first()
+        if not leave:
+            return {"success": False, "error": f"No pending leave found for {employee_id} on {lookup}."}
+        leave.status = "rejected"
+        leave.rejection_reason = reason
+        leave.notified_manager = True
+        db.commit()
+        return {"success": True, "leave_id": leave.id, "employee_id": employee_id, "date": lookup, "type": leave.type}
+    finally:
+        db.close()
+
+
 @tool("get_manager_info", description="Get manager info for an employee.")
 def get_manager_info_wrapper(employee_id: str) -> dict:
     db = SessionLocal()
@@ -1863,6 +1928,8 @@ TOOLS = [
     approve_cancellation_wrapper, reject_cancellation_wrapper, check_team_availability_wrapper,
     get_leave_policy, get_team_leave_stats_wrapper, get_employee_leave_detail_wrapper,
     get_all_employees_wrapper, get_employee_by_id_wrapper, get_hr_contact_wrapper, get_manager_info_wrapper,
+    get_team_members_wrapper,
+    approve_leave_by_employee_wrapper, reject_leave_by_employee_wrapper,
     search_policy, rag_query, get_conversation_history, get_leave_by_id_wrapper,
     get_employee_leave_summary_wrapper, get_my_profile_wrapper,
 ]

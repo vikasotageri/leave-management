@@ -197,26 +197,6 @@
   </div>
 </div>
 
-<!-- HR Chat Bot -->
-<div id="hrChatbot" class="fixed bottom-6 right-6 z-50">
-  <button onclick="toggleHrChat()" class="w-14 h-14 bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-2xl shadow-xl hover:scale-105 transition-transform flex items-center justify-center text-2xl shadow-purple-200" title="AI Assistant">🤖</button>
-  <div id="hrChatPanel" class="hidden absolute bottom-16 right-0 w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-    <div class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white px-4 py-3 flex items-center justify-between">
-      <span class="font-semibold text-sm">🤖 LangGraph HR AI</span>
-      <div class="flex items-center gap-2">
-        <button onclick="clearHrChat()" class="text-white/70 hover:text-white text-xs" title="Clear chat">🗑️</button>
-        <button onclick="toggleHrChat()" class="text-white/80 hover:text-white">&times;</button>
-      </div>
-    </div>
-    <div id="hrChatMessages" class="h-[400px] overflow-y-auto p-3 space-y-3 bg-gray-50 text-sm"></div>
-    <div class="p-3 border-t border-gray-200">
-      <div class="flex gap-2">
-        <textarea id="hrChatInput" rows="4" placeholder="View employees, org data..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendHrChat()}" class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
-        <button onclick="sendHrChat()" class="bg-gradient-to-r from-purple-600 to-indigo-700 text-white px-4 py-2 rounded-xl text-sm hover:from-purple-700 hover:to-indigo-800 transition self-end">Send</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Calendar Modal -->
 <div id="calendarModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">

@@ -57,6 +57,17 @@ Restart server after changing.
 - Manager: `manager@company.com` / `pass123`
 - New employees: auto-generated `EMPxxx` / `pass123`
 
+## Auto-refresh behavior (manager portal)
+- Auto-refresh runs every **6 seconds** on `/manager` page
+- Updates: dashboard stats, team member cards, employee detail view (if open), approvals tab list (if visible)
+- **Skipped during AI processing** (`window._aiProcessing === true`) — prevents "Loading..." flicker in team list while AI responds
+- After AI chat response, employee detail view is refreshed (if open) but NOT `loadManagerDashboard()` — redundant with auto-refresh
+
+## AI chat processing indicator
+- When user sends a message, a visible **"Thinking..."** bubble with yellow pulse dot appears in the chat area
+- Send button is disabled during processing
+- `window._aiProcessing` flag is set to `true` during AI call, `false` after
+
 ## Leave policy
 - 2 days/month, max 24/year
 - Auto-approval if within limits, no project tag, no team conflict

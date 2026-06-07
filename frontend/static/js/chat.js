@@ -54,20 +54,32 @@ function clearChatHistory(containerId){
   }catch(e){}
 }
 
+window._aiProcessing = false
+
 function addChatLoading(containerId){
-  const container=document.getElementById(containerId)
-  if(!container) return
-  const div=document.createElement('div')
-  div.id='chatLoading'
-  div.className='flex justify-start'
-  div.innerHTML='<div class="bg-white text-gray-500 border border-gray-200 px-3 py-2 rounded-xl rounded-bl-sm text-sm italic">Routing via LangGraph...</div>'
-  container.appendChild(div)
-  container.scrollTop=container.scrollHeight
+  window._aiProcessing = true
+  const panel=document.getElementById(containerId)?.closest('[id$=ChatPanel]') || document.getElementById(containerId)?.parentElement
+  if(!panel) return
+  if(!document.getElementById('chatProcessingMsg')){
+    const msg=document.createElement('div')
+    msg.id='chatProcessingMsg'
+    msg.className='flex justify-start'
+    msg.innerHTML='<div class="px-3 py-2 rounded-xl bg-white text-gray-500 border border-gray-200 rounded-bl-sm text-sm italic flex items-center gap-2"><span class="inline-block w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>Thinking...</div>'
+    const container=document.getElementById(containerId)
+    if(container){container.appendChild(msg); container.scrollTop=container.scrollHeight}
+  }
+  const btn=panel.querySelector('button[onclick*="sendMgrChat"],button[onclick*="sendEmpChat"],button[onclick*="sendStandaloneChat"]')
+  if(btn){btn._disabled=btn.disabled; btn.disabled=true; btn.style.opacity='0.5'; btn.style.cursor='not-allowed'}
 }
 
 function removeChatLoading(){
-  const el=document.getElementById('chatLoading')
+  window._aiProcessing = false
+  const el=document.getElementById('chatProcessingMsg')
   if(el) el.remove()
+  document.querySelectorAll('button[onclick*="sendMgrChat"],button[onclick*="sendEmpChat"],button[onclick*="sendStandaloneChat"],button[onclick*="sendChat"]').forEach(b=>{
+    if(b._disabled !== undefined){b.disabled=b._disabled; delete b._disabled}
+    b.style.opacity=''; b.style.cursor=''
+  })
 }
 
 async function sendChat(containerId, inputId, message){
@@ -125,7 +137,6 @@ async function sendChat(containerId, inputId, message){
           return `<div class="${t.color} rounded-xl p-4 border"><p class="text-xs font-medium ${t.text}">${t.label}</p><p class="text-lg font-bold text-gray-800 mt-1">${rem}<span class="text-sm font-normal text-gray-400">/${lim}</span></p></div>`
         }).join('')
       })
-      loadManagerDashboard()
     }
   }catch(e){
     removeChatLoading()

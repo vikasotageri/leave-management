@@ -280,6 +280,9 @@ def _role_tools(role: str):
             "get_my_profile",
             "get_hr_contact",
             "get_manager_info",
+            "get_team_members",
+            "approve_leave_by_employee",
+            "reject_leave_by_employee",
         },
         "hr": {
             "get_leave_balance",
@@ -378,11 +381,13 @@ def call_agent_with_tools(system_prompt: str, user_message: str, user: dict) -> 
         conversation_memory.add(user.get("id", ""), "assistant", err_msg)
         return err_msg
 
+    from datetime import date as dt_date
     user_context = f"\n\nCurrent user: {user.get('name')} (ID: {user.get('id')}, Role: {user.get('role')})"
+    user_context += f"\nToday's date: {dt_date.today().strftime('%Y-%m-%d')} (YYYY-MM-DD). Use this to determine past vs upcoming pending leaves."
     history = conversation_memory.get_formatted(user.get("id", ""))
     role_rules = {
         "employee": (
-            "CRITICAL: You MUST use tools whenever the user asks about leave data, balances, history, profiles, or personal details. Never answer from your training data. Call the relevant tool first, then answer based on the tool's output."
+            "CRITICAL: You MUST use tools whenever the user asks about leave data, balances, history, profiles, or personal details. Never answer from your training data or conversation context. Call the relevant tool first, then answer based on the tool's output. "
             "Rules: answer only about the logged-in employee's own data. "
             "You CAN show the user's own personal details (name, ID, email, phone, gender, DOB, DOJ, etc.). "
             "Never reveal other employees' personal details. "
@@ -396,6 +401,12 @@ def call_agent_with_tools(system_prompt: str, user_message: str, user: dict) -> 
         "manager": (
             "CRITICAL: You MUST use tools to look up team data. Never answer from training data. "
             "Rules: you may answer about your team only. "
+            "Use get_team_members to list team members. Filter results by designation, project_tag, or gender fields. "
+            "Use get_employee_by_id to get specific employee details. "
+            "Use get_pending_requests to see pending leaves. To split past vs upcoming: check each leave's start_date against today's date (given below). Past = start_date before today. Upcoming = start_date today or later. "
+            "Use get_cancellation_requests for cancellation count. "
+            "For approve/reject by employee+date: use approve_leave_by_employee(employee_id, date) or reject_leave_by_employee(employee_id, date, reason). "
+            "Never guess employee names, IDs, or counts from conversation context — always call a tool. "
             "OUTPUT: plain text only. NO markdown, NO bullets, NO bold, NO emoji. "
             "Keep replies short and action-oriented."
         ),

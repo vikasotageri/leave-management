@@ -138,6 +138,36 @@ window.openEmployeeView = async function (empId) {
   sessionStorage.setItem('mgrViewState', JSON.stringify({ tab: 'approvals', empId, empApprovalTab: window._mgrEmpApprovalTab || 'pending' }))
 }
 
+// Re-fresh header + balance cards from _mgrEmployees data (called by auto-refresh)
+window.refreshEmpDetailHeader = function () {
+  if (!_mgrSelectedEmpId) return
+  const emp = _mgrEmployees.find(e => e.id === _mgrSelectedEmpId)
+  if (!emp) return
+  const lb = emp.leaveBalance || {}
+  const docBtnDetail = emp.hasDocument ? `<button onclick="viewDocument('${emp.id}')" class="text-xs text-blue-600 hover:text-blue-800 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-1">📄 View</button>` : ''
+  document.getElementById('empDetailHeader').innerHTML = `
+    <div class="flex items-center justify-between mb-2">
+      <div>
+        <p class="text-lg font-bold text-gray-800">${emp.name}</p>
+        <p class="text-xs text-gray-500">${emp.id} · ${emp.designation || '—'}${emp.gender ? ' · ⚤ ' + emp.gender : ''}${emp.projectTag ? ' · 🏷️ ' + emp.projectTag : ''}</p>
+      </div>
+      ${docBtnDetail}
+    </div>`
+  const balanceTypes = [
+    { key: 'casual', label: 'Casual', color: 'bg-blue-50 border-blue-200', text: 'text-blue-700' },
+    { key: 'sick', label: 'Sick', color: 'bg-green-50 border-green-200', text: 'text-green-700' },
+    { key: 'business', label: 'Business', color: 'bg-purple-50 border-purple-200', text: 'text-purple-700' },
+    { key: 'emergency', label: 'Emergency', color: 'bg-orange-50 border-orange-200', text: 'text-orange-700' },
+    { key: 'family', label: 'Family', color: 'bg-pink-50 border-pink-200', text: 'text-pink-700' },
+  ]
+  document.getElementById('empBalanceCards').innerHTML = balanceTypes.map(t => {
+    const b = lb[t.key] || {}
+    const rem = b.remaining || 0
+    const lim = b.limit || 0
+    return `<div class="${t.color} rounded-xl p-4 border"><p class="text-xs font-medium ${t.text}">${t.label}</p><p class="text-lg font-bold text-gray-800 mt-1">${rem}<span class="text-sm font-normal text-gray-400">/${lim}</span></p></div>`
+  }).join('')
+}
+
 window.closeEmployeeView = function () {
   document.getElementById('mgrEmployeeView').classList.add('hidden')
   // Determine which tab was active before
@@ -155,11 +185,13 @@ window.closeEmployeeView = function () {
   sessionStorage.setItem('mgrViewState', JSON.stringify({ tab: isDashActive ? 'dashboard' : 'approvals', empId: null }))
 }
 
-async function loadEmpApprovals(empId) {
+async function loadEmpApprovals(empId, quiet) {
   const pastEl = document.getElementById('empPastLeaves')
   const upcomingEl = document.getElementById('empUpcomingLeaves')
-  pastEl.innerHTML = '<p class="text-gray-400 text-sm">Loading...</p>'
-  upcomingEl.innerHTML = '<p class="text-gray-400 text-sm">Loading...</p>'
+  if (!quiet) {
+    pastEl.innerHTML = '<p class="text-gray-400 text-sm">Loading...</p>'
+    upcomingEl.innerHTML = '<p class="text-gray-400 text-sm">Loading...</p>'
+  }
   try {
     const leaves = await apiGet('/leaves/employee/' + empId)
     const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -210,7 +242,8 @@ async function loadEmpApprovals(empId) {
     const histTab = document.getElementById('empApprovalTabHistory')
     if (histTab) histTab.textContent = 'History'
 
-    switchEmpApprovalTab('pending')
+    if (!quiet) switchEmpApprovalTab('pending')
+    else switchEmpApprovalTab(window._mgrEmpApprovalTab)
   } catch (e) {
     pastEl.innerHTML = '<p class="text-red-500 text-sm">Error: ' + e.message + '</p>'
     upcomingEl.innerHTML = ''
@@ -353,38 +386,43 @@ window.switchEmpApprovalTab = function (tab) {
 let _empHistPage = 0
 const EMP_HIST_PAGE_SIZE = 10
 
-function renderEmpHistory(history) {
-  const list = document.getElementById('empApprovalList')
+function renderHistFilters() {
   const filters = window._empHistoryFilters || { search: '', type: '', status: '', month: '', year: '' }
-
   let html = '<div class="flex flex-wrap gap-2 mb-3">'
-  html += '<input id="empHistSearch" placeholder="Search by ID or date..." value="' + (filters.search || '') + '" oninput="applyEmpHistFilter()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs outline-none flex-1 min-w-[150px]">'
-  html += '<select id="empHistTypeFilter" onchange="applyEmpHistFilter()" class="px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none">'
+  html += '<input id="empHistSearch" placeholder="Search by ID or date..." value="' + (filters.search || '') + '" oninput="applyHistFilterDebounced()" class="px-3 py-1.5 border border-gray-300 rounded-lg text-xs outline-none flex-1 min-w-[150px]">'
+  html += '<select id="empHistTypeFilter" onchange="applyHistFilterNow()" class="px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none">'
   html += '<option value="">All Types</option>'
   ;['casual', 'sick', 'business', 'emergency', 'family', 'unpaid'].forEach(t => {
     html += '<option value="' + t + '" ' + (filters.type === t ? 'selected' : '') + '>' + t.charAt(0).toUpperCase() + t.slice(1) + '</option>'
   })
   html += '</select>'
-  html += '<select id="empHistStatusFilter" onchange="applyEmpHistFilter()" class="px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none">'
+  html += '<select id="empHistStatusFilter" onchange="applyHistFilterNow()" class="px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none">'
   html += '<option value="">All Status</option>'
   ;['approved', 'rejected', 'pending', 'cancellation_requested'].forEach(s => {
     const label = s === 'approved' ? 'Approved' : s === 'cancellation_requested' ? 'Cancellation Pending' : s.charAt(0).toUpperCase() + s.slice(1)
     html += '<option value="' + s + '" ' + (filters.status === s ? 'selected' : '') + '>' + label + '</option>'
   })
   html += '</select>'
-  html += '<select id="empHistMonthFilter" onchange="applyEmpHistFilter()" class="px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none">'
+  html += '<select id="empHistMonthFilter" onchange="applyHistFilterNow()" class="px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none">'
   html += '<option value="">All Months</option>'
   ;['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].forEach((m,i)=>{
     html += '<option value="' + (i+1) + '" ' + (filters.month === String(i+1) ? 'selected' : '') + '>' + m + '</option>'
   })
   html += '</select>'
-  html += '<select id="empHistYearFilter" onchange="applyEmpHistFilter()" class="px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none">'
+  html += '<select id="empHistYearFilter" onchange="applyHistFilterNow()" class="px-2 py-1.5 border border-gray-300 rounded-lg text-xs outline-none">'
   html += '<option value="">All Years</option>'
   ;['2024','2025','2026','2027'].forEach(y => {
     html += '<option value="' + y + '" ' + (filters.year === y ? 'selected' : '') + '>' + y + '</option>'
   })
   html += '</select>'
-  html += '</div>'
+  html += '</div><div id="empHistTable"></div>'
+  document.getElementById('empApprovalList').innerHTML = html
+}
+
+function renderHistTable() {
+  const data = window._empApprovalData || {}
+  const history = data.history || []
+  const filters = window._empHistoryFilters || { search: '', type: '', status: '', month: '', year: '' }
 
   let filtered = [...history]
   if (filters.search) {
@@ -408,8 +446,9 @@ function renderEmpHistory(history) {
   const start = _empHistPage * EMP_HIST_PAGE_SIZE
   const pageItems = filtered.slice(start, start + EMP_HIST_PAGE_SIZE)
 
+  let html = ''
   if (pageItems.length === 0) {
-    html += '<p class="text-gray-400 text-sm text-center py-6">No matching records</p>'
+    html = '<p class="text-gray-400 text-sm text-center py-6">No matching records</p>'
   } else {
     html += '<div class="overflow-x-auto"><table class="w-full text-xs"><thead><tr class="border-b border-gray-200 text-gray-500"><th class="text-left py-2 px-2">Request ID</th><th class="text-left py-2 px-2">Applied On</th><th class="text-left py-2 px-2">Type</th><th class="text-left py-2 px-2">Leave Date</th><th class="text-left py-2 px-2">Reason</th><th class="text-left py-2 px-2">Status</th><th class="text-left py-2 px-2">Document</th></tr></thead><tbody>'
     pageItems.forEach(l => {
@@ -439,21 +478,39 @@ function renderEmpHistory(history) {
       html += '</div>'
     }
   }
-  list.innerHTML = html
+  document.getElementById('empHistTable').innerHTML = html
 }
 
-window.applyEmpHistFilter = function () {
+function renderEmpHistory() {
   _empHistPage = 0
-  const data = window._empApprovalData || {}
-  if (data.history) renderEmpHistory(data.history)
+  renderHistFilters()
+  renderHistTable()
+}
+
+let _histFilterTimer = null
+window.applyHistFilterNow = function () {
+  if (_histFilterTimer) { clearTimeout(_histFilterTimer); _histFilterTimer = null }
+  _empHistPage = 0
+  window._empHistoryFilters = {
+    search: document.getElementById('empHistSearch')?.value || '',
+    type: document.getElementById('empHistTypeFilter')?.value || '',
+    status: document.getElementById('empHistStatusFilter')?.value || '',
+    month: document.getElementById('empHistMonthFilter')?.value || '',
+    year: document.getElementById('empHistYearFilter')?.value || '',
+  }
+  renderHistTable()
+}
+window.applyHistFilterDebounced = function () {
+  if (_histFilterTimer) clearTimeout(_histFilterTimer)
+  _histFilterTimer = setTimeout(function() { window.applyHistFilterNow() }, 300)
 }
 
 window.empHistPrevPage = function () {
-  if (_empHistPage > 0) { _empHistPage--; renderEmpHistory(((window._empApprovalData || {}).history || [])) }
+  if (_empHistPage > 0) { _empHistPage--; renderHistTable() }
 }
 window.empHistNextPage = function () {
   const total = ((window._empApprovalData || {}).history || []).length
-  if ((_empHistPage + 1) * EMP_HIST_PAGE_SIZE < total) { _empHistPage++; renderEmpHistory(((window._empApprovalData || {}).history || [])) }
+  if ((_empHistPage + 1) * EMP_HIST_PAGE_SIZE < total) { _empHistPage++; renderHistTable() }
 }
 
 // --- HR leave history pagination (module-level, matches employee pattern) ---
