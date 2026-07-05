@@ -139,9 +139,9 @@ Open any portal below in your browser. No setup required.
 
 | Portal | Preview |
 |--------|---------|
-| 👨‍💼 **Employee Dashboard** | ![Employee Portal](screenshots/employee.png) |
-| 👔 **Manager Dashboard** | ![Manager Portal](screenshots/manager.png) |
-| 🧑‍💼 **HR Dashboard** | ![HR Portal](screenshots/hr.png) |
+| 👨‍💼 **Employee Dashboard** | ![Employee Portal](https://raw.githubusercontent.com/vikasotageri/leave-management/master/screenshots/employee.png) |
+| 👔 **Manager Dashboard** | ![Manager Portal](https://raw.githubusercontent.com/vikasotageri/leave-management/master/screenshots/manager.png) |
+| 🧑‍💼 **HR Dashboard** | ![HR Portal](https://raw.githubusercontent.com/vikasotageri/leave-management/master/screenshots/hr.png) |
 
 ---
 
