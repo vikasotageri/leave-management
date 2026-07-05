@@ -1,3 +1,12 @@
+---
+title: MSIS Leave Management System
+emoji: 📋
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # MSIS Leave Management System
 
 Multi-role AI-powered Leave Management System with Employee, Manager, and HR portals.
