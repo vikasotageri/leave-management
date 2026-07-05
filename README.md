@@ -155,14 +155,38 @@ git clone https://github.com/vikasotageri/leave-management.git
 cd leave-management
 ```
 
-#### Step 3: Set Up Environment Variables
+#### Step 3: Get Your API Keys (Required)
+
+This project needs **3 things** to work fully. Follow the links below to get them:
+
+| # | What you need | Why | How to get it (click link) | 🎥 Video Tutorial |
+|---|--------------|-----|---------------------------|-------------------|
+| 1 | **OpenAI API Key** | Powers the AI Chat feature — without it, agents won't work | [🔑 Get OpenAI API Key](https://platform.openai.com/api-keys) → Click "Create new secret key" → Copy the `sk-...` key | [📺 Watch: How to get OpenAI API Key](https://www.youtube.com/watch?v=naQ9GXPvH6A) |
+| 2 | **Gmail Account** | Sends welcome emails & credentials to new employees | [📧 Create Gmail](https://accounts.google.com/signup) (if you don't have one) | - |
+| 3 | **Gmail App Password** | Lets the system send emails from your Gmail | [🔐 Create App Password](https://myaccount.google.com/apppasswords) → Select "Mail" → Generate → Copy 16-char password | [📺 Watch: How to create Gmail App Password](https://www.youtube.com/watch?v=kh1nMpotyFo) |
+
+> **📌 How to get Gmail App Password (step-by-step):**
+> 1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+> 2. Sign in with your Gmail
+> 3. Under "Select app" → choose **"Mail"**
+> 4. Under "Select device" → choose **"Other (Custom name)"** → type `AI MSIS`
+> 5. Click **"Generate"**
+> 6. Copy the **16-character password** (looks like `abcd efgh ijkl mnop`) — spaces are OK, include them
+>
+> ❓ Don't see "App Passwords"? Enable **[2-Step Verification](https://myaccount.google.com/security)** first, then come back.
+
+#### Step 4: Set Up Environment Variables
+
+Now put those keys into a file so the system can read them.
 
 ```bash
 # Create .env file from the template
 cp backend/.env.example backend/.env
 ```
 
-Now open `backend/.env` in a text editor (Notepad, VS Code, etc.) and fill in:
+**Where is this file?** Open the `leave-management` folder → open `backend` folder → find `.env` file. Open it in **Notepad** (Windows) or **TextEdit** (Mac) or **VS Code**.
+
+**Replace the placeholder text with your actual keys:**
 
 ```
 OPENAI_API_KEY=sk-your-openai-api-key-here
@@ -171,16 +195,18 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-gmail-app-password
 ```
 
-| Field | Required? | What to put |
-|-------|-----------|-------------|
-| `OPENAI_API_KEY` | ✅ Yes (for AI chat) | Your key from [platform.openai.com](https://platform.openai.com/api-keys) |
-| `SECRET_KEY` | ✅ Yes | Any random text, e.g. `mysecret123` |
-| `SMTP_USER` | ❌ No | Your Gmail address (if you want email features) |
-| `SMTP_PASS` | ❌ No | Your Gmail app password (if you want email features) |
+| Variable | Required? | What to put | Example |
+|----------|-----------|-------------|---------|
+| `OPENAI_API_KEY` | ✅ **Required** | Paste the `sk-...` key from OpenAI | `sk-proj-AbCdEfGhIjKlMnOpQrStUvWxYz123456` |
+| `SECRET_KEY` | ✅ **Required** | Any random text you make up | `mySuperSecretKey123!@#` |
+| `SMTP_USER` | ✅ **Required for email** | Your full Gmail address | `vikasotageri234@gmail.com` |
+| `SMTP_PASS` | ✅ **Required for email** | The 16-char password from Google | `abcd efgh ijkl mnop` |
 
-> **No OpenAI key?** That's fine. The system works for all leave operations. Only the AI Chat feature won't work.
+> ⚠️ **All four fields are required** for the full system to work. Without OpenAI key → AI Chat won't work. Without SMTP → emails won't send.
 
-#### Step 4: Start the Servers
+**Save the file** (Ctrl+S) and close it.
+
+#### Step 5: Start the Servers
 
 ```bash
 bash start.sh
@@ -205,6 +231,46 @@ Wait 1-2 minutes. You'll see:
 | 🧑‍💼 HR | http://localhost:8003/hr | `hr@company.com` / `pass123` |
 | 👔 Manager | http://localhost:8002/manager | `manager@company.com` / `pass123` |
 | 👨‍💼 Employee | http://localhost:8001/employee | Created by HR |
+
+#### 🚀 Deploy on Hugging Face Spaces (Live Server)
+
+Want to put this online like the live demo? Follow these steps:
+
+**Step 1:** Create a Hugging Face account at [huggingface.co](https://huggingface.co/join)
+
+**Step 2:** Create a new Space:
+   - Click your profile → **"New Space"**
+   - **Space Name:** `leaveflow` (or any name)
+   - **License:** MIT
+   - **SDK:** Select **Docker**
+   - Click **"Create Space"**
+
+**Step 3:** Upload the code:
+```bash
+# In terminal, link your HF Space
+git remote add hf https://huggingface.co/spaces/YOUR_USERNAME/leaveflow
+git push hf master:main
+```
+
+**Step 4:** Add secrets (Environment Variables):
+   - Go to your Space → **Settings** tab → Scroll to **"Repository Secrets"**
+   - Click **"New secret"** and add these one by one:
+
+| Secret Name | Value | Where to get it |
+|------------|-------|-----------------|
+| `OPENAI_API_KEY` | `sk-...` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| `SECRET_KEY` | Any random string | Make one up, e.g. `mySecret123` |
+| `SMTP_USER` | `your-email@gmail.com` | Your Gmail address |
+| `SMTP_PASS` | `abcd efgh ijkl mnop` | [Google App Passwords](https://myaccount.google.com/apppasswords) |
+
+   - 📺 **Video:** [How to set HF Space Secrets](https://www.youtube.com/watch?v=CyfSqDHDppM)
+
+**Step 5:** Wait 2-3 minutes for the build. Your Space will be live at:
+   ```
+   https://YOUR_USERNAME-leaveflow.hf.space
+   ```
+
+> 💡 **Tip:** To redeploy after code changes, just `git push hf master:main` — HF auto-builds.
 
 #### Troubleshooting
 
@@ -330,8 +396,9 @@ Think of this system like a **restaurant**:
 
 ## 🎓 Purpose: Educational Project (Not Enterprise)
 
-> ⚠️ **This is a LEARNING project**, not a production-ready enterprise system.  
-> It is built to understand **how Agentic AI works** — how LLMs, prompts, tools, and agents work together.
+> ⚠️ **This is a LEARNING project** built to understand **how Agentic AI works** — how LLMs, prompts, tools, and agents work together. It is **not** a production-ready enterprise system.
+
+> 🔑 **This project REQUIRES an OpenAI API key** (for AI Chat feature) and **Gmail credentials** (for email notifications). Both are free to set up — see Step 3 below.
 
 ### What This Project Teaches You
 
@@ -356,7 +423,7 @@ Think of this system like a **restaurant**:
 
 - ✅ **Learning how AI agents work** — see the full flow: user message → LLM → tool call → response
 - ✅ **Understanding LangGraph** — trace how Supervisor routes to Specialists
-- ✅ **Experimenting with prompts** — tweak `graphs.py` prompts and see how AI behavior changes
+- ✅ **Experimenting with prompts** — tweak `ai/agents/graphs.py` prompts and see how AI behavior changes
 - ✅ **Testing LLM tool calling** — see how OpenAI's function calling integrates with Python
 - ✅ **Building your own agentic system** — use this as a template for your own ideas
 
@@ -569,12 +636,22 @@ leave-management/
 
 ## 💻 Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OPENAI_API_KEY` | ✅ | OpenAI API key (for AI chat) |
-| `SECRET_KEY` | ✅ | JWT secret — any random string |
-| `SMTP_USER` | ❌ | Gmail address (for email) |
-| `SMTP_PASS` | ❌ | Gmail app password (for email) |
+This project needs **4 environment variables** to work fully:
+
+| Variable | Required | Description | Where to get it |
+|----------|----------|-------------|-----------------|
+| `OPENAI_API_KEY` | ✅ **Required** | OpenAI API key for AI Chat agents | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| `SECRET_KEY` | ✅ **Required** | JWT secret — any random string for login security | Make up any text (e.g. `mySecretKey123`) |
+| `SMTP_USER` | ✅ **Required for email** | Gmail address that sends welcome emails | Your Gmail address |
+| `SMTP_PASS` | ✅ **Required for email** | Gmail app password (16 chars) | [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) |
+
+### How to set them:
+
+**For local development:** Edit `backend/.env` file (see [Step 4](#step-4-set-up-environment-variables))
+
+**For Hugging Face Spaces:** Go to your Space → **Settings** → **Repository Secrets** → Add each one
+
+> ❓ **Don't have a Gmail App Password?** Watch this: [📺 How to create Gmail App Password](https://www.youtube.com/watch?v=kh1nMpotyFo)
 
 ### Seeded Demo Accounts
 
