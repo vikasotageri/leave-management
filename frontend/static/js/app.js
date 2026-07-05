@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded',async function(){
         }
       } catch (e) { console.error('Auto-refresh error:', e) }
       _mgrRefreshing = false
-    }, 6000)
+    }, 12000)
     try {
       const raw = sessionStorage.getItem('mgrViewState')
       if (raw) {

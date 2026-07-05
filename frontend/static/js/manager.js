@@ -67,7 +67,7 @@ async function loadManagerDashboard(isRefresh) {
         const desig = (e.designation||'').toLowerCase()
         const dColor = Object.keys(desigColors).reduce((acc,key)=> desig.includes(key) ? desigColors[key] : acc, defaultColor)
         const docBtn = e.hasDocument ? `<button onclick="viewDocument('${e.id}')" class="text-xs text-blue-600 hover:text-blue-800 ml-auto">📄 View</button>` : ''
-        return `<div class="p-4 bg-white rounded-xl border border-gray-200 transition">
+        return `<div class="p-4 bg-white rounded-xl border border-gray-200">
           <div class="flex items-center justify-between mb-1">
             <p class="font-semibold text-sm text-gray-800">${e.name}</p>
             <div class="flex items-center gap-2">${docBtn}${badgeHtml ? '<span class="flex items-center gap-1">'+badgeHtml+'</span>' : ''}</div>
@@ -685,7 +685,7 @@ window.loadTeamApprovalsList = async function () {
       const badgeHtml = badges.length ? `<span class="flex items-center gap-1">${badges.join(' ')}</span>` : ''
       const desig = (e.designation||'').toLowerCase()
       const dColor = Object.keys(desigColors).reduce((acc,key)=> desig.includes(key) ? desigColors[key] : acc, defaultColor)
-      return `<div onclick="openEmployeeView('${e.id}')" class="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-blue-200 cursor-pointer transition">
+      return `<div onclick="openEmployeeView('${e.id}')" class="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-blue-200 cursor-pointer">
         <div class="flex items-center justify-between mb-1">
           <p class="font-semibold text-sm text-gray-800">${e.name}</p>
           <div class="flex items-center gap-2">${badgeHtml}${total > 0 ? `<span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">Total: ${total}</span>` : ''}</div>
