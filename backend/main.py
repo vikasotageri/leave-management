@@ -70,12 +70,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 from database import Base, engine
 from seed import seed_database
 from ai.engine.vector_store import seed_policy_vector_store
 from routers import auth, employees, leaves, notifications, chat, frontend, holidays
-
-load_dotenv()
 
 Base.metadata.create_all(bind=engine)
 seed_database()

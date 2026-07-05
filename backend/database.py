@@ -53,6 +53,7 @@
 
 import os
 from dotenv import load_dotenv
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 from sqlalchemy import create_engine, Column, String, JSON, DateTime, Boolean, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.ext.hybrid import hybrid_property
