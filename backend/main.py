@@ -55,9 +55,9 @@
   - No-cache middleware prevents back-button auto-login after logout
 ================================================================================
 """
-
 import os
 import sys
+import time
 
 BASE_DIR = os.path.dirname(__file__)
 PROJECT_ROOT = os.path.dirname(BASE_DIR)
@@ -98,6 +98,7 @@ class NoCacheMiddleware(BaseHTTPMiddleware):
 app.add_middleware(NoCacheMiddleware)
 
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+templates.env.globals["cache_buster"] = str(int(time.time()))
 
 app.add_middleware(
     CORSMiddleware,
