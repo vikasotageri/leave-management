@@ -235,14 +235,18 @@ This system can send **automatic emails** using Gmail SMTP. Here's what it sends
 
 Follow these steps to run the project on your own machine.
 
-#### Step 1: Install Python
+#### Step 1: Install Required Software
 
-| If you have | Check by running | Download if missing |
-|------------|-----------------|-------------------|
-| **Python 3.12+** | `python --version` | [python.org/downloads](https://www.python.org/downloads/) |
-| **Git** | `git --version` | [git-scm.com/downloads](https://git-scm.com/downloads) |
+| Software | Version | Why you need it | Download Link |
+|----------|---------|----------------|---------------|
+| **Python** | 3.12 or higher | The backend server runs on Python | [python.org/downloads](https://www.python.org/downloads/) |
+| **Git** | Latest | Downloads the code from GitHub | [git-scm.com/downloads](https://git-scm.com/downloads) |
+| **VS Code** (or any text editor) | Latest | To edit the `.env` file and code | [code.visualstudio.com](https://code.visualstudio.com/) |
+| **Terminal** (Mac/Linux) or **Command Prompt** (Windows) | Built-in | To run commands (clone, start, etc.) | Already on your computer |
 
-> **Windows users:** During Python install, **check** the box "Add Python to PATH".
+> **Windows users:** During Python install, **check** the box ➜ **"Add Python to PATH"**. This is very important — without it, the `python` command won't work in Command Prompt.
+
+> **First time using terminal?** [📺 Watch: Basic Command Prompt tutorial](https://www.youtube.com/watch?v=MBBWVgE0ewk)
 
 #### Step 2: Download the Project
 
