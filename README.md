@@ -135,6 +135,76 @@ Open any portal below in your browser. No setup required.
 
 ---
 
+## 🤖 AI Chat — How It Works & What to Try
+
+The **AI Chat** (available in Employee & Manager portals) is the heart of this Agentic AI project. It uses **OpenAI GPT-4o-mini** routed through **LangGraph agents** — no hardcoded if-else, no button clicks needed.
+
+### How It Works (Behind the Scenes)
+
+```
+You type: "Apply for casual leave tomorrow"
+    ↓
+Supervisor Agent (LLM) reads your intent
+    ↓  "This is about applying leave → route to Leave Agent"
+Leave Agent receives your request
+    ↓  Calls tool: apply_leave(employee_id, type, date, reason)
+Database is updated + policy checked
+    ↓
+Agent replies: "✅ Casual leave for tomorrow has been approved!"
+```
+
+### 🧪 Try These Prompts — Observe the AI in Action
+
+Copy-paste these into the AI Chat and watch what happens:
+
+#### Employee Portal — Try These
+
+| Prompt | What the AI Does | Why It's Cool |
+|--------|-----------------|---------------|
+| `"What is my leave balance?"` | Calls `get_leave_balance()` tool → reads DB → replies | No menu navigation needed |
+| `"Apply for casual leave tomorrow"` | Calls `apply_leave()` → checks policy → auto-approves or routes to manager | One sentence = full transaction |
+| `"Cancel my leave on 2026-07-10"` | Calls `cancel_leave()` → checks 70-day window → cancels if eligible | Understands date format |
+| `"What is the leave policy?"` | Calls `POLICY_PROMPT` → explains rules in plain English | No need to read docs |
+| `"How many casual leaves have I taken this month?"` | Calls `get_leave_history()` → counts by type/month → summarizes | Multi-step reasoning |
+| `"Show me my upcoming leaves"` | Calls `get_upcoming_leaves()` → queries approved future leaves | Cross-table query |
+
+#### Manager Portal — Try These
+
+| Prompt | What the AI Does |
+|--------|-----------------|
+| `"Show me all pending leaves"` | Calls `get_pending_leaves()` → lists team members with pending requests |
+| `"How many leaves did I approve today?"` | Calls `get_approved_leaves()` → counts approvals for today's date |
+| `"Show team leave summary"` | Calls `get_team_leave_summary()` → aggregates all team members' balances |
+| `"Approve John's sick leave"` | Calls `approve_leave()` → finds John's pending sick leave → approves |
+| `"Who has the most remaining casual leave?"` | Calls balances for all team → sorts → returns top member |
+| `"What leaves are pending from last week?"` | Filters by date range → returns pending leaves from that period |
+
+### 🔍 What to Observe
+
+When you send a prompt, pay attention to:
+
+| What to notice | What it proves |
+|----------------|----------------|
+| **No buttons clicked** | AI understands natural language — no rigid forms needed |
+| **Date understanding** ("tomorrow", "next Monday", "July 10th") | LLM converts fuzzy dates to exact dates |
+| **Multi-step responses** ("I checked your balance and you have...") | Agent called a tool, got data, formatted the reply |
+| **Policy-aware answers** ("This needs manager approval because...") | Agent checked rules before acting |
+| **Error handling** ("I can't find that leave record") | Agent knows its limits and tells you |
+| **Context memory** (follow-up questions) | Chat history is maintained within the session |
+
+### 🆚 AI vs Manual (Traditional) Way
+
+| Task | Manual Way | AI Way |
+|------|-----------|--------|
+| Check balance | Navigate to dashboard → find balance card | Type *"What is my balance?"* → instant reply |
+| Apply leave | Click "Apply Leave" → fill form → select dates → submit | Type *"Apply casual leave from Monday to Wednesday"* |
+| Cancel leave | Find leave in history → click cancel → confirm | Type *"Cancel my leave on July 10"* |
+| Check policy | Open policy document → search for rule | Type *"What's the sick leave policy?"* |
+| Manager: Approve | Go to approvals → find employee → click approve | Type *"Approve John's sick leave"* |
+| Manager: Report | Manually count leaves across team | Type *"Show team leave summary"* |
+
+---
+
 ### 💻 Option 2: Run Locally on Your Computer
 
 Follow these steps to run the project on your own machine.
@@ -525,11 +595,6 @@ leave-management/
 ├── docs/                            # Documentation
 │   ├── AGENTS.md
 │   └── README.md
-│
-├── screenshots/                     # UI images (add your own)
-│   ├── employee/
-│   ├── hr/
-│   └── manager/
 │
 ├── Dockerfile                       # For Hugging Face Spaces
 ├── start.sh                         # One-command launcher
