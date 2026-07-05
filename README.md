@@ -246,7 +246,7 @@ Follow these steps to run the project on your own machine.
 
 > **Windows users:** During Python install, **check** the box ➜ **"Add Python to PATH"**. This is very important — without it, the `python` command won't work in Command Prompt.
 
-> **First time using terminal?** [📺 Watch: Basic Command Prompt tutorial](https://www.youtube.com/watch?v=MBBWVgE0ewk)
+> **First time using terminal?** Search YouTube for "Basic Command Prompt tutorial".
 
 #### Step 2: Download the Project
 
@@ -259,11 +259,11 @@ cd leave-management
 
 This project needs **3 things** to work fully. Follow the links below to get them:
 
-| # | What you need | Why | How to get it (click link) | 🎥 Video Tutorial |
-|---|--------------|-----|---------------------------|-------------------|
-| 1 | **OpenAI API Key** | Powers the AI Chat feature — without it, agents won't work | [🔑 Get OpenAI API Key](https://platform.openai.com/api-keys) → Click "Create new secret key" → Copy the `sk-...` key | [📺 Watch: How to get OpenAI API Key](https://www.youtube.com/watch?v=naQ9GXPvH6A) |
-| 2 | **Gmail Account** | Sends welcome emails & credentials to new employees | [📧 Create Gmail](https://accounts.google.com/signup) (if you don't have one) | - |
-| 3 | **Gmail App Password** | Lets the system send emails from your Gmail | [🔐 Create App Password](https://myaccount.google.com/apppasswords) → Select "Mail" → Generate → Copy 16-char password | [📺 Watch: How to create Gmail App Password](https://www.youtube.com/watch?v=kh1nMpotyFo) |
+| # | What you need | Why | How to get it (click link) |
+|---|--------------|-----|---------------------------|
+| 1 | **OpenAI API Key** | Powers the AI Chat feature — without it, agents won't work | [🔑 Get OpenAI API Key](https://platform.openai.com/api-keys) → Click "Create new secret key" → Copy the `sk-...` key |
+| 2 | **Gmail Account** | Sends welcome emails & credentials to new employees | [📧 Create Gmail](https://accounts.google.com/signup) (if you don't have one) |
+| 3 | **Gmail App Password** | Lets the system send emails from your Gmail | [🔐 Create App Password](https://myaccount.google.com/apppasswords) → Select "Mail" → Generate → Copy 16-char password |
 
 > **📌 How to get Gmail App Password (step-by-step):**
 > 1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
@@ -704,7 +704,7 @@ This project needs **4 environment variables** to work fully:
 
 Edit `backend/.env` file (see [Step 4](#step-4-set-up-environment-variables))
 
-> ❓ **Don't have a Gmail App Password?** Watch this: [📺 How to create Gmail App Password](https://www.youtube.com/watch?v=kh1nMpotyFo)
+> ❓ **Don't have a Gmail App Password?** Follow the steps above to create one.
 
 ### Seeded Demo Accounts
 
@@ -731,11 +731,10 @@ Edit `backend/.env` file (see [Step 4](#step-4-set-up-environment-variables))
 🎓 **M.C.A.** — Master of Computer Applications  
 🎓 Currently Student at **Manipal School of Information Science, Manipal**
 
-📧 vikasotageri234@gmail.com  
-📧 vikas1.msismpl2025@learner.manipal.edu
-
 [![GitHub](https://img.shields.io/badge/GitHub-vikasotageri-181717?logo=github)](https://github.com/vikasotageri)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-vikasotageri-0A66C2?logo=linkedin)](https://www.linkedin.com/in/vikasotageri/)
+[![Email](https://img.shields.io/badge/Email-vikasotageri234@gmail.com-EA4335?logo=gmail)](mailto:vikasotageri234@gmail.com)
+[![Email](https://img.shields.io/badge/Email-vikas1.msismpl2025@learner.manipal.edu-purple?logo=mail.ru)](mailto:vikas1.msismpl2025@learner.manipal.edu)
 
 ---
 
