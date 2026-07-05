@@ -3,7 +3,9 @@
 let _mgrEmployees = []
 let _mgrSelectedEmpId = null
 
-async function loadManagerDashboard() {
+let _mgrLastTeamHash = ''
+
+async function loadManagerDashboard(isRefresh) {
   const u = getUser()
   if (!u || window.location.pathname !== '/manager') return
   try {
@@ -32,51 +34,53 @@ async function loadManagerDashboard() {
       { label: 'Cancellation Req', value: totalCancellations, color: 'bg-blue-50 text-blue-700', icon: '🔶' },
     ].map(s => `<div class="${s.color} rounded-xl p-4 border"><p class="text-xs opacity-70">${s.icon} ${s.label}</p><p class="text-2xl font-bold mt-1">${s.value}</p></div>`).join('')
 
-    // Team member cards - vertical, sorted by pending+cancel desc
+    // Team member cards - skip full re-render during auto-refresh to prevent flicker
     const container = document.getElementById('teamMemberList')
-    const sortedEmps = [...emps].sort((a, b) => {
-      const pa = (pendingCounts[a.id] || 0) + (cancelCounts[a.id] || 0)
-      const pb = (pendingCounts[b.id] || 0) + (cancelCounts[b.id] || 0)
-      return pb - pa || (a.name || '').localeCompare(b.name || '')
-    })
-    const top10 = sortedEmps.slice(0, 10)
-    const desigColors = {
-      'software engineer':'bg-blue-100 text-blue-700','senior software engineer':'bg-indigo-100 text-indigo-700',
-      'tech lead':'bg-purple-100 text-purple-700','manager':'bg-orange-100 text-orange-700',
-      'ai ml engineer':'bg-cyan-100 text-cyan-700','data scientist':'bg-teal-100 text-teal-700',
-      'devops engineer':'bg-rose-100 text-rose-700','qa engineer':'bg-lime-100 text-lime-700',
-      'product manager':'bg-amber-100 text-amber-700','ui/ux designer':'bg-pink-100 text-pink-700',
-      'business analyst':'bg-violet-100 text-violet-700','intern':'bg-gray-100 text-gray-700',
+    if (!isRefresh) {
+      const sortedEmps = [...emps].sort((a, b) => {
+        const pa = (pendingCounts[a.id] || 0) + (cancelCounts[a.id] || 0)
+        const pb = (pendingCounts[b.id] || 0) + (cancelCounts[b.id] || 0)
+        return pb - pa || (a.name || '').localeCompare(b.name || '')
+      })
+      const top10 = sortedEmps.slice(0, 10)
+      const desigColors = {
+        'software engineer':'bg-blue-100 text-blue-700','senior software engineer':'bg-indigo-100 text-indigo-700',
+        'tech lead':'bg-purple-100 text-purple-700','manager':'bg-orange-100 text-orange-700',
+        'ai ml engineer':'bg-cyan-100 text-cyan-700','data scientist':'bg-teal-100 text-teal-700',
+        'devops engineer':'bg-rose-100 text-rose-700','qa engineer':'bg-lime-100 text-lime-700',
+        'product manager':'bg-amber-100 text-amber-700','ui/ux designer':'bg-pink-100 text-pink-700',
+        'business analyst':'bg-violet-100 text-violet-700','intern':'bg-gray-100 text-gray-700',
+      }
+      const defaultColor = 'bg-gray-100 text-gray-700'
+      container.innerHTML = top10.map(e => {
+        const pCount = pendingCounts[e.id] || 0
+        const cCount = cancelCounts[e.id] || 0
+        const badges = []
+        if (pCount > 0) badges.push(`<span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full font-medium">⏳ ${pCount} Pending</span>`)
+        if (cCount > 0) badges.push(`<span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">🔶 ${cCount} Cancellation</span>`)
+        const badgeHtml = badges.length ? badges.join(' ') : ''
+        const desig = (e.designation||'').toLowerCase()
+        const dColor = Object.keys(desigColors).reduce((acc,key)=> desig.includes(key) ? desigColors[key] : acc, defaultColor)
+        const docBtn = e.hasDocument ? `<button onclick="viewDocument('${e.id}')" class="text-xs text-blue-600 hover:text-blue-800 ml-auto">📄 View</button>` : ''
+        return `<div class="p-4 bg-white rounded-xl border border-gray-200 transition">
+          <div class="flex items-center justify-between mb-1">
+            <p class="font-semibold text-sm text-gray-800">${e.name}</p>
+            <div class="flex items-center gap-2">${docBtn}${badgeHtml ? '<span class="flex items-center gap-1">'+badgeHtml+'</span>' : ''}</div>
+          </div>
+          <p class="text-xs text-gray-500">${e.email || '—'}</p>
+          <p class="text-xs text-gray-500 mt-1">ID: ${e.id}</p>
+          <p class="text-xs mt-0.5"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium ${dColor}">${e.designation||'—'}</span></p>
+          <p class="text-xs text-gray-500 mt-1">DOJ: ${toDisplayDate(e.doj)}</p>
+          <p class="text-xs text-gray-500">⚤ ${e.gender || '—'}</p>
+          ${e.projectTag
+            ? `<div class="mt-2 flex items-center gap-2"><span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">🏷️ ${e.projectTag}</span><button onclick="untagEmployeeMgr('${e.id}')" class="text-xs text-red-500 hover:text-red-700" title="Remove tag">✕ Untag</button><button onclick="editTagMgr('${e.id}','${e.projectTag}')" class="text-xs text-blue-500 hover:text-blue-700" title="Edit tag">✏️</button></div>`
+            : `<div class="mt-2"><button onclick="editTagMgr('${e.id}','')" class="text-xs text-blue-600 hover:text-blue-800">+ Add Project Tag</button></div>`
+          }
+          <div id="mgrTagInput${e.id}" class="hidden mt-2 flex gap-2"></div>
+          <p class="text-xs text-gray-400 mt-1">📞 ${e.phone || '—'}</p>
+        </div>`
+      }).join('')
     }
-    const defaultColor = 'bg-gray-100 text-gray-700'
-    container.innerHTML = top10.map(e => {
-      const pCount = pendingCounts[e.id] || 0
-      const cCount = cancelCounts[e.id] || 0
-      const badges = []
-      if (pCount > 0) badges.push(`<span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full font-medium">⏳ ${pCount} Pending</span>`)
-      if (cCount > 0) badges.push(`<span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">🔶 ${cCount} Cancellation</span>`)
-      const badgeHtml = badges.length ? badges.join(' ') : ''
-      const desig = (e.designation||'').toLowerCase()
-      const dColor = Object.keys(desigColors).reduce((acc,key)=> desig.includes(key) ? desigColors[key] : acc, defaultColor)
-      const docBtn = e.hasDocument ? `<button onclick="viewDocument('${e.id}')" class="text-xs text-blue-600 hover:text-blue-800 ml-auto">📄 View</button>` : ''
-      return `<div class="p-4 bg-white rounded-xl border border-gray-200 transition">
-        <div class="flex items-center justify-between mb-1">
-          <p class="font-semibold text-sm text-gray-800">${e.name}</p>
-          <div class="flex items-center gap-2">${docBtn}${badgeHtml ? '<span class="flex items-center gap-1">'+badgeHtml+'</span>' : ''}</div>
-        </div>
-        <p class="text-xs text-gray-500">${e.email || '—'}</p>
-        <p class="text-xs text-gray-500 mt-1">ID: ${e.id}</p>
-        <p class="text-xs mt-0.5"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium ${dColor}">${e.designation||'—'}</span></p>
-        <p class="text-xs text-gray-500 mt-1">DOJ: ${toDisplayDate(e.doj)}</p>
-        <p class="text-xs text-gray-500">⚤ ${e.gender || '—'}</p>
-        ${e.projectTag
-          ? `<div class="mt-2 flex items-center gap-2"><span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">🏷️ ${e.projectTag}</span><button onclick="untagEmployeeMgr('${e.id}')" class="text-xs text-red-500 hover:text-red-700" title="Remove tag">✕ Untag</button><button onclick="editTagMgr('${e.id}','${e.projectTag}')" class="text-xs text-blue-500 hover:text-blue-700" title="Edit tag">✏️</button></div>`
-          : `<div class="mt-2"><button onclick="editTagMgr('${e.id}','')" class="text-xs text-blue-600 hover:text-blue-800">+ Add Project Tag</button></div>`
-        }
-        <div id="mgrTagInput${e.id}" class="hidden mt-2 flex gap-2"></div>
-        <p class="text-xs text-gray-400 mt-1">📞 ${e.phone || '—'}</p>
-      </div>`
-    }).join('')
 
     // Employee select for approvals tab
     const sel = document.getElementById('mgrEmployeeSelect')

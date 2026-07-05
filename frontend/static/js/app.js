@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded',async function(){
       if (_mgrRefreshing || window._aiProcessing) return
       _mgrRefreshing = true
       try {
-        await loadManagerDashboard()
+        await loadManagerDashboard(true)
         if (_mgrSelectedEmpId) {
           refreshEmpDetailHeader()
           loadEmpApprovals(_mgrSelectedEmpId, true).catch(() => {})
