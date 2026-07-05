@@ -28,7 +28,52 @@ pinned: false
 
 ---
 
-## 🔗 Live Portals
+## 👋 For Visitors — How to Use This Project
+
+### Option 1: Visit the Live Demo (No Installation)
+
+Just open any portal in your browser:
+
+| Portal | URL | Login Credentials | What You Can Do |
+|--------|-----|-------------------|-----------------|
+| 👨‍💼 **Employee** | [leaveflow.hf.space/employee](https://VikasOtageri-leaveflow.hf.space/employee) | Created by HR (ask admin) | Apply/cancel leaves, check balance, AI chat |
+| 👔 **Manager** | [leaveflow.hf.space/manager](https://VikasOtageri-leaveflow.hf.space/manager) | `manager@company.com` / `pass123` | Approve/reject leaves, team analytics, AI reports |
+| 🧑‍💼 **HR** | [leaveflow.hf.space/hr](https://VikasOtageri-leaveflow.hf.space/hr) | `hr@company.com` / `pass123` | Create/manage employees, project tags, AI ops |
+
+> **First-time visitor?** Start with the **HR portal** → Create a dummy employee → Then log into **Employee portal** with those credentials. Or just explore the **Manager portal** directly with the demo account.
+
+### Option 2: Run Locally on Your Machine
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/vikasotageri/leave-management.git
+cd leave-management
+
+# 2. Set up environment
+cp backend/.env.example backend/.env
+# Edit backend/.env — add your OPENAI_API_KEY
+
+# 3. Run (installs dependencies + starts all servers)
+bash start.sh
+```
+
+Open http://localhost:8001/employee — done.
+
+### Option 3: Integrate Into Your Own Project
+
+This project is modular. You can pick and choose what you need:
+
+1. **Just the AI Agents?** → Copy `backend/agents/` folder. It's a standalone LangGraph multi-agent system. Import `graphs.py` and call `graph.invoke()` with a user message and employee data.
+
+2. **Just the Leave Management API?** → Copy `backend/routers/` + `backend/database.py`. The FastAPI endpoints are fully self-contained REST APIs for leave CRUD.
+
+3. **Full System on Your Own Domain?** → Fork the repo, change the branding in `backend/templates/base.html` (edit the "MSIS" logo), set your own `SECRET_KEY`, deploy on any cloud (Render, Railway, Fly.io).
+
+4. **Add a New Feature / Agent?** → Add a new tool function in `backend/agents/tools.py`, create its prompt in `backend/agents/graphs.py`, and add it to the supervisor's allowed tools in `backend/agents/supervisor.py`.
+
+---
+
+## 🔗 Live Portals (Quick Access)
 
 | Portal | URL | Who Uses It | What You Can Do |
 |--------|-----|-------------|-----------------|
@@ -224,62 +269,7 @@ User → React/Static Frontend → FastAPI :8000
 
 ---
 
-## 🚀 Deployment
-
-### 🌐 Live on Hugging Face Spaces
-
-The system is deployed at **https://VikasOtageri-leaveflow.hf.space** with three portals:
-
-| Portal | URL Path | Credentials |
-|--------|----------|-------------|
-| **Employee** | `/employee` | Created by HR |
-| **Manager** | `/manager` | manager@company.com / pass123 |
-| **HR** | `/hr` | hr@company.com / pass123 |
-
-### 🐳 Docker Deployment (HF Spaces)
-
-```dockerfile
-FROM python:3.12-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY . .
-EXPOSE 7860
-CMD cd backend && python main.py
-```
-
-Set these **HF Space Secrets**:
-- `OPENAI_API_KEY` — OpenAI key for AI chat
-- `SECRET_KEY` — JWT signing secret
-- `SMTP_USER` — Gmail address (optional)
-- `SMTP_PASS` — Gmail app password (optional)
-
----
-
-## ⚙️ Local Setup
-
-### Prerequisites
-- Python 3.12+
-- OpenAI API key
-
-### Quick Start
-
-```bash
-# 1. Clone
-git clone https://github.com/vikasotageri/leave-management.git
-cd leave-management
-
-# 2. Configure
-cp backend/.env.example backend/.env
-# Edit backend/.env with your OPENAI_API_KEY
-
-# 3. Run
-bash start.sh
-```
-
-Open `http://localhost:8001/employee` 🎉
-
-### Environment Variables
+## 💻 Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
