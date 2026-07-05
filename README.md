@@ -232,47 +232,7 @@ Wait 1-2 minutes. You'll see:
 | 👔 Manager | http://localhost:8002/manager | `manager@company.com` / `pass123` |
 | 👨‍💼 Employee | http://localhost:8001/employee | Created by HR |
 
-#### 🚀 Deploy on Hugging Face Spaces (Live Server)
-
-Want to put this online like the live demo? Follow these steps:
-
-**Step 1:** Create a Hugging Face account at [huggingface.co](https://huggingface.co/join)
-
-**Step 2:** Create a new Space:
-   - Click your profile → **"New Space"**
-   - **Space Name:** `leaveflow` (or any name)
-   - **License:** MIT
-   - **SDK:** Select **Docker**
-   - Click **"Create Space"**
-
-**Step 3:** Upload the code:
-```bash
-# In terminal, link your HF Space
-git remote add hf https://huggingface.co/spaces/YOUR_USERNAME/leaveflow
-git push hf master:main
-```
-
-**Step 4:** Add secrets (Environment Variables):
-   - Go to your Space → **Settings** tab → Scroll to **"Repository Secrets"**
-   - Click **"New secret"** and add these one by one:
-
-| Secret Name | Value | Where to get it |
-|------------|-------|-----------------|
-| `OPENAI_API_KEY` | `sk-...` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
-| `SECRET_KEY` | Any random string | Make one up, e.g. `mySecret123` |
-| `SMTP_USER` | `your-email@gmail.com` | Your Gmail address |
-| `SMTP_PASS` | `abcd efgh ijkl mnop` | [Google App Passwords](https://myaccount.google.com/apppasswords) |
-
-   - 📺 **Video:** [How to set HF Space Secrets](https://www.youtube.com/watch?v=CyfSqDHDppM)
-
-**Step 5:** Wait 2-3 minutes for the build. Your Space will be live at:
-   ```
-   https://YOUR_USERNAME-leaveflow.hf.space
-   ```
-
-> 💡 **Tip:** To redeploy after code changes, just `git push hf master:main` — HF auto-builds.
-
-#### Troubleshooting
+#### 🛠️ Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
@@ -647,9 +607,7 @@ This project needs **4 environment variables** to work fully:
 
 ### How to set them:
 
-**For local development:** Edit `backend/.env` file (see [Step 4](#step-4-set-up-environment-variables))
-
-**For Hugging Face Spaces:** Go to your Space → **Settings** → **Repository Secrets** → Add each one
+Edit `backend/.env` file (see [Step 4](#step-4-set-up-environment-variables))
 
 > ❓ **Don't have a Gmail App Password?** Watch this: [📺 How to create Gmail App Password](https://www.youtube.com/watch?v=kh1nMpotyFo)
 
